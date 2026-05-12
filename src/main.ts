@@ -1,12 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
+import { SparkRenderer, SplatMesh, SparkXr } from "@sparkjsdev/spark";
 
 // --- Scene setup ---
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -21,6 +22,17 @@ controls.dampingFactor = 0.05;
 // --- Spark renderer ---
 const spark = new SparkRenderer({ renderer });
 scene.add(spark);
+
+// --- XR ---
+const sparkXr = new SparkXr({
+  renderer,
+  mode: "vr",
+  button: true,
+  referenceSpaceType: "local-floor",
+  controllers: {},
+  onEnterXr: () => { controls.enabled = false; },
+  onExitXr: () => { controls.enabled = true; },
+});
 
 // --- Load splat ---
 // Replace this URL with your own .ply / .spz / .splat / .ksplat file
@@ -73,6 +85,7 @@ window.addEventListener("resize", () => {
 // --- Render loop ---
 renderer.setAnimationLoop(() => {
   controls.update();
+  sparkXr.updateControllers(camera);
   spark.update({ scene, camera });
   renderer.render(scene, camera);
 });
