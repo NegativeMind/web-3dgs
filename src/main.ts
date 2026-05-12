@@ -85,7 +85,7 @@ window.addEventListener("resize", () => {
 // --- Render loop ---
 renderer.setAnimationLoop(() => {
   controls.update();
-  sparkXr.updateControllers(camera);
+  if (renderer.xr.isPresenting) sparkXr.updateControllers(camera);
   spark.update({ scene, camera });
   renderer.render(scene, camera);
 });
