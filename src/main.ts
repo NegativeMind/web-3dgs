@@ -23,21 +23,41 @@ controls.dampingFactor = 0.05;
 const spark = new SparkRenderer({ renderer });
 scene.add(spark);
 
+// --- VR button (shown only after splat is loaded AND XR is supported) ---
+const vrButtonEl = document.getElementById("vr-button") as HTMLButtonElement;
+let splatLoaded = false;
+let xrSupported = false;
+
+function updateVrButton(): void {
+  if (splatLoaded && xrSupported) vrButtonEl.disabled = false;
+}
+
 // --- XR ---
 const sparkXr = new SparkXr({
   renderer,
   mode: "vr",
-  button: true,
+  button: false,
   referenceSpaceType: "local-floor",
   controllers: {},
-  onEnterXr: () => { controls.enabled = false; },
-  onExitXr: () => { controls.enabled = true; },
+  onReady: (supported) => {
+    xrSupported = supported;
+    if (!supported) vrButtonEl.style.display = "none";
+    else updateVrButton();
+  },
+  onEnterXr: () => {
+    controls.enabled = false;
+    vrButtonEl.textContent = "Exit VR";
+  },
+  onExitXr: () => {
+    controls.enabled = true;
+    vrButtonEl.textContent = "Enter VR";
+  },
 });
 
-// --- Load splat ---
-// Replace this URL with your own .ply / .spz / .splat / .ksplat file
-const SPLAT_URL = "./3dgs/gmk.sog";
+vrButtonEl.addEventListener("click", () => sparkXr.toggleXr());
 
+// --- Load splat ---
+const SPLAT_URL = "./3dgs/gmk.sog";
 const loadingEl = document.getElementById("loading") as HTMLDivElement;
 
 async function loadSplat(url: string): Promise<void> {
@@ -48,19 +68,20 @@ async function loadSplat(url: string): Promise<void> {
     mesh3d.rotation.x = Math.PI;
     scene.add(mesh3d);
 
-    await splatMesh.initialized;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Load timeout: ${url}`)), 60000)
+    );
+    await Promise.race([splatMesh.initialized, timeout]);
 
     const box = splatMesh.getBoundingBox();
     const center = new THREE.Vector3();
     box.getCenter(center);
 
-    // ローカル空間の中心をワールド空間に変換（rotation.x = π が適用済み）
     scene.updateMatrixWorld();
     center.applyMatrix4(mesh3d.matrixWorld);
 
     controls.target.copy(center);
 
-    // バウンディングボックスのサイズからカメラ距離を算出
     const size = new THREE.Vector3();
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
@@ -68,6 +89,11 @@ async function loadSplat(url: string): Promise<void> {
     const distance = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
     camera.position.copy(center).add(new THREE.Vector3(0, 0, distance));
     controls.update();
+
+    splatLoaded = true;
+    updateVrButton();
+  } catch (err) {
+    console.error("[3DGS] Failed to load splat:", err);
   } finally {
     loadingEl.classList.add("hidden");
   }
@@ -85,7 +111,8 @@ window.addEventListener("resize", () => {
 // --- Render loop ---
 renderer.setAnimationLoop(() => {
   controls.update();
-  if (renderer.xr.isPresenting) sparkXr.updateControllers(camera);
-  spark.update({ scene, camera });
+  const activeCamera = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+  if (renderer.xr.isPresenting) sparkXr.updateControllers(activeCamera);
+  spark.update({ scene, camera: activeCamera });
   renderer.render(scene, camera);
 });
