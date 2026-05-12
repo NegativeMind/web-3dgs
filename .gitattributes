@@ -1,0 +1,7 @@
+# 3D assets
+*.ply                   lfs
+*.sog                   lfs
+*.FBX                   lfs
+*.fbx                   lfs
+*.glb                   lfs
+*.gltf                  lfs
