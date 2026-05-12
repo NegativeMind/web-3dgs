@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { SparkRenderer, SplatMesh, SparkControls, SparkXr } from "@sparkjsdev/spark";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { SparkRenderer, SplatMesh, SparkXr } from "@sparkjsdev/spark";
 
 // --- Renderer ---
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -13,7 +14,8 @@ scene.background = new THREE.Color(0x000000);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
 
-// localFrame はカメラの親グループ。SparkControls と SparkXr はこれを動かす。
+// localFrame は XR の基準フレーム。カメラをその子にすることで
+// HMD の移動をシーン全体に反映できる。
 const localFrame = new THREE.Group();
 scene.add(localFrame);
 localFrame.add(camera);
@@ -22,14 +24,20 @@ localFrame.add(camera);
 const spark = new SparkRenderer({ renderer });
 scene.add(spark);
 
-// --- Controls (desktop: FPS マウス＋キーボード) ---
-const controls = new SparkControls({ canvas });
+// --- OrbitControls (デスクトップ操作) ---
+// カメラは localFrame の子だが、localFrame が原点にある限り
+// OrbitControls の target はワールド座標と一致する。
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
 
-// --- XR (Enter VR ボタンは SparkXr が自動生成) ---
+// --- XR ---
 const xr = new SparkXr({
   renderer,
   onMouseLeaveOpacity: 0.5,
   controllers: {},
+  onEnterXr: () => { controls.enabled = false; },
+  onExitXr:  () => { controls.enabled = true; },
 });
 
 // --- Load splat ---
@@ -41,8 +49,7 @@ async function loadSplat(url: string): Promise<void> {
   try {
     const splatMesh = new SplatMesh({ url });
     const mesh3d = splatMesh as unknown as THREE.Object3D;
-    // COLMAP SfM データは Y 軸下向きのため補正
-    mesh3d.rotation.x = Math.PI;
+    mesh3d.rotation.x = Math.PI; // COLMAP 座標系補正
     scene.add(mesh3d);
 
     const timeout = new Promise<never>((_, reject) =>
@@ -50,7 +57,6 @@ async function loadSplat(url: string): Promise<void> {
     );
     await Promise.race([splatMesh.initialized, timeout]);
 
-    // バウンディングボックス中心に localFrame を配置
     const box = splatMesh.getBoundingBox();
     const center = new THREE.Vector3();
     box.getCenter(center);
@@ -63,7 +69,9 @@ async function loadSplat(url: string): Promise<void> {
     const fov = camera.fov * (Math.PI / 180);
     const distance = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
 
-    localFrame.position.set(center.x, center.y, center.z + distance);
+    controls.target.copy(center);
+    camera.position.copy(center).add(new THREE.Vector3(0, 0, distance));
+    controls.update();
   } catch (err) {
     console.error("[3DGS] Failed to load splat:", err);
   } finally {
@@ -82,7 +90,7 @@ window.addEventListener("resize", () => {
 
 // --- Render loop ---
 renderer.setAnimationLoop(() => {
-  xr.updateControllers(camera);
-  controls.update(localFrame);
+  controls.update();
+  if (renderer.xr.isPresenting) xr.updateControllers(camera);
   renderer.render(scene, camera);
 });
