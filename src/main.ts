@@ -1,60 +1,36 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SparkRenderer, SplatMesh, SparkXr } from "@sparkjsdev/spark";
+import { SparkRenderer, SplatMesh, SparkControls, SparkXr } from "@sparkjsdev/spark";
 
-// --- Scene setup ---
+// --- Renderer ---
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.xr.enabled = true;
 
+// --- Scene & Camera ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
-camera.position.set(0, 0, 3);
 
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
+// localFrame はカメラの親グループ。SparkControls と SparkXr はこれを動かす。
+const localFrame = new THREE.Group();
+scene.add(localFrame);
+localFrame.add(camera);
 
 // --- Spark renderer ---
 const spark = new SparkRenderer({ renderer });
 scene.add(spark);
 
-// --- VR button (shown only after splat is loaded AND XR is supported) ---
-const vrButtonEl = document.getElementById("vr-button") as HTMLButtonElement;
-let splatLoaded = false;
-let xrSupported = false;
+// --- Controls (desktop: FPS マウス＋キーボード) ---
+const controls = new SparkControls({ canvas });
 
-function updateVrButton(): void {
-  if (splatLoaded && xrSupported) vrButtonEl.disabled = false;
-}
-
-// --- XR ---
-const sparkXr = new SparkXr({
+// --- XR (Enter VR ボタンは SparkXr が自動生成) ---
+const xr = new SparkXr({
   renderer,
-  mode: "vr",
-  button: false,
-  referenceSpaceType: "local-floor",
+  onMouseLeaveOpacity: 0.5,
   controllers: {},
-  onReady: (supported) => {
-    xrSupported = supported;
-    if (!supported) vrButtonEl.style.display = "none";
-    else updateVrButton();
-  },
-  onEnterXr: () => {
-    controls.enabled = false;
-    vrButtonEl.textContent = "Exit VR";
-  },
-  onExitXr: () => {
-    controls.enabled = true;
-    vrButtonEl.textContent = "Enter VR";
-  },
 });
-
-vrButtonEl.addEventListener("click", () => sparkXr.toggleXr());
 
 // --- Load splat ---
 const SPLAT_URL = "./3dgs/gmk.sog";
@@ -65,6 +41,7 @@ async function loadSplat(url: string): Promise<void> {
   try {
     const splatMesh = new SplatMesh({ url });
     const mesh3d = splatMesh as unknown as THREE.Object3D;
+    // COLMAP SfM データは Y 軸下向きのため補正
     mesh3d.rotation.x = Math.PI;
     scene.add(mesh3d);
 
@@ -73,25 +50,20 @@ async function loadSplat(url: string): Promise<void> {
     );
     await Promise.race([splatMesh.initialized, timeout]);
 
+    // バウンディングボックス中心に localFrame を配置
     const box = splatMesh.getBoundingBox();
     const center = new THREE.Vector3();
     box.getCenter(center);
-
     scene.updateMatrixWorld();
     center.applyMatrix4(mesh3d.matrixWorld);
-
-    controls.target.copy(center);
 
     const size = new THREE.Vector3();
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
     const distance = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
-    camera.position.copy(center).add(new THREE.Vector3(0, 0, distance));
-    controls.update();
 
-    splatLoaded = true;
-    updateVrButton();
+    localFrame.position.set(center.x, center.y, center.z + distance);
   } catch (err) {
     console.error("[3DGS] Failed to load splat:", err);
   } finally {
@@ -101,7 +73,7 @@ async function loadSplat(url: string): Promise<void> {
 
 loadSplat(SPLAT_URL);
 
-// --- Resize handler ---
+// --- Resize ---
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -110,9 +82,7 @@ window.addEventListener("resize", () => {
 
 // --- Render loop ---
 renderer.setAnimationLoop(() => {
-  controls.update();
-  const activeCamera = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
-  if (renderer.xr.isPresenting) sparkXr.updateControllers(activeCamera);
-  spark.update({ scene, camera: activeCamera });
+  xr.updateControllers(camera);
+  controls.update(localFrame);
   renderer.render(scene, camera);
 });
