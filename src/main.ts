@@ -4,13 +4,14 @@ import { SparkRenderer, SplatMesh, SparkXr } from "@sparkjsdev/spark";
 
 // --- Renderer ---
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 // --- Scene & Camera ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+scene.background = null;
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
 
@@ -400,6 +401,8 @@ function updateXrButton(supported: boolean, presenting: boolean): void {
 const xr = new SparkXr({
   renderer,
   element: vrButton,
+  mode: "arvr",
+  referenceSpaceType: "local-floor",
   onMouseLeaveOpacity: 0.5,
   onReady: (supported) => { updateXrButton(supported, false); },
   onEnterXr: () => {
