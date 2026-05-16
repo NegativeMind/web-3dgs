@@ -37,6 +37,8 @@ const XR_DRAG_POSITION_SCALE = 1.2;
 const XR_DOLLY_SPEED = 1.8;
 const XR_MIN_DISTANCE = 0.05;
 const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
+const XR_SPIN_DAMPING = 3.2;
+const XR_SPIN_STOP_EPSILON = 0.000001;
 
 let initialViewDistance = 2;
 let xrDragController: THREE.Group | undefined;
@@ -48,6 +50,7 @@ const xrDragViewInverse = new THREE.Matrix4();
 let xrDragViewPlaneHeight = 1;
 let activeXrSession: XRSession | undefined;
 let splatObject: THREE.Object3D | undefined;
+const objectSpinVelocity = new THREE.Vector2();
 
 function bakeLocalFrameIntoCamera(): void {
   const worldPosition = new THREE.Vector3();
@@ -167,6 +170,13 @@ function applyObjectRotation(deltaX: number, deltaY: number): void {
 
   rotateObjectAroundTarget(splatObject, yaw);
   rotateObjectAroundTarget(splatObject, pitch);
+}
+
+function updateObjectSpin(deltaTime: number): void {
+  if (xrDragController || objectSpinVelocity.lengthSq() < XR_SPIN_STOP_EPSILON) return;
+
+  applyObjectRotation(objectSpinVelocity.x * deltaTime, objectSpinVelocity.y * deltaTime);
+  objectSpinVelocity.multiplyScalar(Math.exp(-XR_SPIN_DAMPING * deltaTime));
 }
 
 type XrControllerInput = {
@@ -335,6 +345,7 @@ function updateXrDragOrbit(inputs: XrControllerInput[]): boolean {
 
   if (delta.lengthSq() === 0) return true;
 
+  objectSpinVelocity.copy(delta).multiplyScalar(60);
   applyObjectRotation(delta.x, delta.y);
   return true;
 }
@@ -364,6 +375,8 @@ function updateXrOrbitControls(deltaTime: number): void {
     localFrame.position.add(dolly);
     localFrame.updateMatrixWorld(true);
   }
+
+  updateObjectSpin(deltaTime);
 }
 
 // --- XR ---
