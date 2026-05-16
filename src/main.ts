@@ -34,6 +34,7 @@ controls.dampingFactor = 0.05;
 const TWO_PI = Math.PI * 2;
 const XR_DEADZONE = 0.15;
 const XR_ORBIT_SPEED = 1.8;
+const XR_DRAG_POSITION_SCALE = 1.2;
 const XR_DOLLY_SPEED = 1.8;
 const XR_MIN_DISTANCE = 0.05;
 const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
@@ -41,6 +42,7 @@ const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
 let initialViewDistance = 2;
 let xrDragController: THREE.Group | undefined;
 let xrDragInputSource: XRInputSource | undefined;
+let xrDragHeldBySelect = false;
 let xrDragInitialized = false;
 const xrDragScreenPosition = new THREE.Vector2();
 const xrDragViewInverse = new THREE.Matrix4();
@@ -152,6 +154,7 @@ scene.add(...xrControllerObjects);
 function resetXrDrag(): void {
   xrDragController = undefined;
   xrDragInputSource = undefined;
+  xrDragHeldBySelect = false;
   xrDragInitialized = false;
 }
 
@@ -164,6 +167,14 @@ function findControllerForInputSource(inputSource: XRInputSource): THREE.Group |
 function beginXrDrag(inputSource: XRInputSource): void {
   xrDragInputSource = inputSource;
   xrDragController = findControllerForInputSource(inputSource);
+  xrDragHeldBySelect = true;
+  xrDragInitialized = false;
+}
+
+function beginXrControllerDrag(controller: THREE.Group, inputSource?: XRInputSource): void {
+  xrDragInputSource = inputSource;
+  xrDragController = controller;
+  xrDragHeldBySelect = false;
   xrDragInitialized = false;
 }
 
@@ -206,12 +217,13 @@ function onXrSelectEnd(event: XRInputSourceEvent): void {
 xrControllerObjects.forEach((controller) => {
   controller.addEventListener("selectstart", () => {
     xrDragController = controller;
+    xrDragInputSource = undefined;
+    xrDragHeldBySelect = true;
     xrDragInitialized = false;
   });
   controller.addEventListener("selectend", () => {
     if (xrDragController === controller) {
-      xrDragController = undefined;
-      xrDragInitialized = false;
+      resetXrDrag();
     }
   });
 });
@@ -236,32 +248,37 @@ function getXrControllerInputs(): XrControllerInput[] {
   return inputs;
 }
 
-function getControllerScreenPosition(controller: THREE.Object3D, inverseCamera: THREE.Matrix4, viewPlaneHeight: number): THREE.Vector2 | null {
-  const origin = new THREE.Vector3();
-  const quaternion = new THREE.Quaternion();
-  const direction = new THREE.Vector3(0, 0, -1);
-
-  controller.getWorldPosition(origin);
-  controller.getWorldQuaternion(quaternion);
-  direction.applyQuaternion(quaternion).normalize();
-
-  origin.applyMatrix4(inverseCamera);
-  direction.transformDirection(inverseCamera);
-
-  if (direction.z >= -0.0001) return null;
-
-  const distanceToViewPlane = (-1 - origin.z) / direction.z;
-  if (distanceToViewPlane <= 0) return null;
-
-  const pointOnViewPlane = origin.add(direction.multiplyScalar(distanceToViewPlane));
+function getControllerScreenPosition(controller: THREE.Object3D, inverseCamera: THREE.Matrix4, viewPlaneHeight: number): THREE.Vector2 {
+  const position = new THREE.Vector3();
+  controller.getWorldPosition(position);
+  position.applyMatrix4(inverseCamera);
 
   return new THREE.Vector2(
-    pointOnViewPlane.x / viewPlaneHeight,
-    -pointOnViewPlane.y / viewPlaneHeight
+    position.x * XR_DRAG_POSITION_SCALE / viewPlaneHeight,
+    -position.y * XR_DRAG_POSITION_SCALE / viewPlaneHeight
   );
 }
 
-function updateXrDragOrbit(): boolean {
+function isTriggerPressed(gamepad: Gamepad): boolean {
+  const trigger = gamepad.buttons[0];
+  const squeeze = gamepad.buttons[1];
+  return [trigger, squeeze].some((button) => !!button && (button.pressed || button.value > 0.5));
+}
+
+function syncXrDragFromGamepads(inputs: XrControllerInput[]): void {
+  if (xrDragController) {
+    const activeInput = inputs.find((input) => input.controller === xrDragController);
+    if (activeInput && isTriggerPressed(activeInput.gamepad)) return;
+    if (xrDragHeldBySelect) return;
+    resetXrDrag();
+  }
+
+  const triggerInput = inputs.find((input) => isTriggerPressed(input.gamepad));
+  if (triggerInput) beginXrControllerDrag(triggerInput.controller, triggerInput.source);
+}
+
+function updateXrDragOrbit(inputs: XrControllerInput[]): boolean {
+  syncXrDragFromGamepads(inputs);
   const draggingController = xrDragController;
 
   if (!draggingController) {
@@ -277,12 +294,7 @@ function updateXrDragOrbit(): boolean {
     xrDragViewPlaneHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 2;
   }
 
-  const currentScreenPosition = getControllerScreenPosition(
-    draggingController,
-    xrDragViewInverse,
-    xrDragViewPlaneHeight
-  );
-  if (!currentScreenPosition) return true;
+  const currentScreenPosition = getControllerScreenPosition(draggingController, xrDragViewInverse, xrDragViewPlaneHeight);
 
   if (startedDrag) {
     xrDragScreenPosition.copy(currentScreenPosition);
@@ -308,7 +320,7 @@ function getActiveThumbstickInput(inputs: XrControllerInput[]): { input?: XrCont
 
 function updateXrOrbitControls(deltaTime: number): void {
   const inputs = getXrControllerInputs();
-  const isDragging = updateXrDragOrbit();
+  const isDragging = updateXrDragOrbit(inputs);
   const { input, thumbstick } = getActiveThumbstickInput(inputs);
   const isGripPressed = input?.gamepad.buttons[1]?.pressed ?? false;
 
