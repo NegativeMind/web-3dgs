@@ -31,13 +31,45 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+function bakeLocalFrameIntoCamera(): void {
+  const worldPosition = new THREE.Vector3();
+  const worldQuaternion = new THREE.Quaternion();
+  camera.getWorldPosition(worldPosition);
+  camera.getWorldQuaternion(worldQuaternion);
+
+  localFrame.position.set(0, 0, 0);
+  localFrame.quaternion.identity();
+  localFrame.scale.set(1, 1, 1);
+  localFrame.updateMatrixWorld(true);
+
+  camera.position.copy(worldPosition);
+  camera.quaternion.copy(worldQuaternion);
+  camera.updateMatrixWorld(true);
+  controls.update();
+}
+
 // --- XR ---
+const vrButton = document.getElementById("vr-button") as HTMLButtonElement;
+function updateXrButton(supported: boolean, presenting: boolean): void {
+  vrButton.disabled = !supported;
+  vrButton.textContent = presenting ? "EXIT XR" : "ENTER XR";
+}
+
 const xr = new SparkXr({
   renderer,
+  element: vrButton,
   onMouseLeaveOpacity: 0.5,
   controllers: {},
-  onEnterXr: () => { controls.enabled = false; },
-  onExitXr:  () => { controls.enabled = true; },
+  onReady: (supported) => { updateXrButton(supported, false); },
+  onEnterXr: () => {
+    updateXrButton(true, true);
+    controls.enabled = false;
+  },
+  onExitXr:  () => {
+    bakeLocalFrameIntoCamera();
+    updateXrButton(xr.xrSupported(), false);
+    controls.enabled = true;
+  },
 });
 
 // --- Load splat ---
@@ -46,16 +78,20 @@ const loadingEl = document.getElementById("loading") as HTMLDivElement;
 
 async function loadSplat(url: string): Promise<void> {
   loadingEl.classList.remove("hidden");
+  let splatMesh: SplatMesh | undefined;
+  let mesh3d: THREE.Object3D | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    const splatMesh = new SplatMesh({ url });
-    const mesh3d = splatMesh as unknown as THREE.Object3D;
+    splatMesh = new SplatMesh({ url });
+    mesh3d = splatMesh as unknown as THREE.Object3D;
     mesh3d.rotation.x = Math.PI; // COLMAP 座標系補正
     scene.add(mesh3d);
 
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Load timeout: ${url}`)), 60000)
+      timeoutId = setTimeout(() => reject(new Error(`Load timeout: ${url}`)), 60000)
     );
     await Promise.race([splatMesh.initialized, timeout]);
+    if (timeoutId) clearTimeout(timeoutId);
 
     const box = splatMesh.getBoundingBox();
     const center = new THREE.Vector3();
@@ -74,7 +110,10 @@ async function loadSplat(url: string): Promise<void> {
     controls.update();
   } catch (err) {
     console.error("[3DGS] Failed to load splat:", err);
+    if (mesh3d) scene.remove(mesh3d);
+    splatMesh?.dispose();
   } finally {
+    if (timeoutId) clearTimeout(timeoutId);
     loadingEl.classList.add("hidden");
   }
 }

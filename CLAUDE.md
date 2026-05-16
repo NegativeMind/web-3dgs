@@ -12,7 +12,7 @@ npm run preview  # ビルド済み dist/ をローカルでプレビュー
 
 TypeScript の型チェック単体実行:
 ```bash
-npx --no-install vite build   # ビルドで型エラーも検出される（tsc --noEmit 相当）
+npm run typecheck
 ```
 
 ## アーキテクチャ
