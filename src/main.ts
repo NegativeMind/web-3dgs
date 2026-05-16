@@ -31,14 +31,16 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+const TWO_PI = Math.PI * 2;
 const XR_DEADZONE = 0.15;
 const XR_ORBIT_SPEED = 1.8;
-const XR_PAN_SPEED = 0.8;
 const XR_DOLLY_SPEED = 1.8;
 const XR_MIN_DISTANCE = 0.05;
 const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
 
 let initialViewDistance = 2;
+let xrDragControllerIndex: number | undefined;
+const xrDragScreenPosition = new THREE.Vector2();
 
 function bakeLocalFrameIntoCamera(): void {
   const worldPosition = new THREE.Vector3();
@@ -96,17 +98,34 @@ function readThumbstick(gamepad?: Gamepad): THREE.Vector2 {
   return primary.lengthSq() >= fallback.lengthSq() ? primary : fallback;
 }
 
-function getXrGamepads(): { left?: Gamepad; right?: Gamepad } {
+type XrControllerInput = {
+  index: number;
+  source: XRInputSource;
+  gamepad: Gamepad;
+  controller: THREE.Group;
+};
+
+const xrControllerObjects = [renderer.xr.getController(0), renderer.xr.getController(1)];
+scene.add(...xrControllerObjects);
+
+function getXrControllerInputs(): XrControllerInput[] {
   const session = renderer.xr.getSession();
-  const gamepads: { left?: Gamepad; right?: Gamepad } = {};
+  const inputs: XrControllerInput[] = [];
+  let index = 0;
 
   for (const source of session?.inputSources ?? []) {
-    if (!source.gamepad) continue;
-    if (source.handedness === "left") gamepads.left = source.gamepad;
-    if (source.handedness === "right") gamepads.right = source.gamepad;
+    if (source.gamepad) {
+      inputs.push({
+        index,
+        source,
+        gamepad: source.gamepad,
+        controller: xrControllerObjects[index] ?? renderer.xr.getController(index),
+      });
+    }
+    index += 1;
   }
 
-  return gamepads;
+  return inputs;
 }
 
 function rotateLocalFrameAroundTarget(rotation: THREE.Quaternion): void {
@@ -117,15 +136,93 @@ function rotateLocalFrameAroundTarget(rotation: THREE.Quaternion): void {
   localFrame.updateMatrixWorld(true);
 }
 
-function updateXrOrbitControls(deltaTime: number): void {
-  const { left, right } = getXrGamepads();
-  const orbit = readThumbstick(right);
-  const move = readThumbstick(left);
+function getControllerScreenPosition(controller: THREE.Object3D): THREE.Vector2 | null {
+  const origin = new THREE.Vector3();
+  const quaternion = new THREE.Quaternion();
+  const direction = new THREE.Vector3(0, 0, -1);
+  const inverseCamera = new THREE.Matrix4().copy(camera.matrixWorld).invert();
 
-  if (orbit.lengthSq() > 0) {
+  controller.getWorldPosition(origin);
+  controller.getWorldQuaternion(quaternion);
+  direction.applyQuaternion(quaternion).normalize();
+
+  origin.applyMatrix4(inverseCamera);
+  direction.transformDirection(inverseCamera);
+
+  if (direction.z >= -0.0001) return null;
+
+  const distanceToViewPlane = (-1 - origin.z) / direction.z;
+  if (distanceToViewPlane <= 0) return null;
+
+  const pointOnViewPlane = origin.add(direction.multiplyScalar(distanceToViewPlane));
+  const viewPlaneHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 2;
+
+  return new THREE.Vector2(
+    pointOnViewPlane.x / viewPlaneHeight,
+    -pointOnViewPlane.y / viewPlaneHeight
+  );
+}
+
+function updateXrDragOrbit(inputs: XrControllerInput[]): boolean {
+  const draggingInput =
+    inputs.find((input) => input.index === xrDragControllerIndex && input.gamepad.buttons[0]?.pressed) ??
+    inputs.find((input) => input.gamepad.buttons[0]?.pressed);
+
+  if (!draggingInput) {
+    xrDragControllerIndex = undefined;
+    return false;
+  }
+
+  const currentScreenPosition = getControllerScreenPosition(draggingInput.controller);
+  if (!currentScreenPosition) return true;
+
+  if (xrDragControllerIndex !== draggingInput.index) {
+    xrDragControllerIndex = draggingInput.index;
+    xrDragScreenPosition.copy(currentScreenPosition);
+    return true;
+  }
+
+  const delta = currentScreenPosition.clone().sub(xrDragScreenPosition);
+  xrDragScreenPosition.copy(currentScreenPosition);
+
+  if (delta.lengthSq() === 0) return true;
+
+  const rotateSpeed = controls.rotateSpeed;
+  const yaw = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    -TWO_PI * delta.x * rotateSpeed
+  );
+
+  const cameraWorldQuaternion = new THREE.Quaternion();
+  camera.getWorldQuaternion(cameraWorldQuaternion);
+  const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
+  const pitch = new THREE.Quaternion().setFromAxisAngle(
+    cameraRight,
+    -TWO_PI * delta.y * rotateSpeed
+  );
+
+  rotateLocalFrameAroundTarget(yaw);
+  rotateLocalFrameAroundTarget(pitch);
+  return true;
+}
+
+function getActiveThumbstickInput(inputs: XrControllerInput[]): { input?: XrControllerInput; thumbstick: THREE.Vector2 } {
+  return inputs.reduce<{ input?: XrControllerInput; thumbstick: THREE.Vector2 }>((active, input) => {
+    const thumbstick = readThumbstick(input.gamepad);
+    return thumbstick.lengthSq() > active.thumbstick.lengthSq() ? { input, thumbstick } : active;
+  }, { thumbstick: new THREE.Vector2() });
+}
+
+function updateXrOrbitControls(deltaTime: number): void {
+  const inputs = getXrControllerInputs();
+  const isDragging = updateXrDragOrbit(inputs);
+  const { input, thumbstick } = getActiveThumbstickInput(inputs);
+  const isGripPressed = input?.gamepad.buttons[1]?.pressed ?? false;
+
+  if (!isDragging && !isGripPressed && thumbstick.lengthSq() > 0) {
     const yaw = new THREE.Quaternion().setFromAxisAngle(
       new THREE.Vector3(0, 1, 0),
-      -orbit.x * XR_ORBIT_SPEED * deltaTime
+      -thumbstick.x * XR_ORBIT_SPEED * deltaTime
     );
 
     const cameraWorldQuaternion = new THREE.Quaternion();
@@ -133,30 +230,24 @@ function updateXrOrbitControls(deltaTime: number): void {
     const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
     const pitch = new THREE.Quaternion().setFromAxisAngle(
       cameraRight,
-      -orbit.y * XR_ORBIT_SPEED * deltaTime
+      -thumbstick.y * XR_ORBIT_SPEED * deltaTime
     );
 
     rotateLocalFrameAroundTarget(yaw);
     rotateLocalFrameAroundTarget(pitch);
   }
 
-  if (move.lengthSq() > 0) {
+  const dollyInput = !isDragging && isGripPressed ? thumbstick.y : 0;
+  if (dollyInput !== 0) {
     const cameraPosition = new THREE.Vector3();
-    const cameraWorldQuaternion = new THREE.Quaternion();
     camera.getWorldPosition(cameraPosition);
-    camera.getWorldQuaternion(cameraWorldQuaternion);
 
     const distance = Math.max(cameraPosition.distanceTo(controls.target), XR_MIN_DISTANCE);
-    const rightVector = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
     const viewDirection = new THREE.Vector3();
     camera.getWorldDirection(viewDirection);
 
-    const pan = rightVector.multiplyScalar(-move.x * XR_PAN_SPEED * distance * deltaTime);
-    const dolly = viewDirection.multiplyScalar(-move.y * XR_DOLLY_SPEED * distance * deltaTime);
-    const delta = pan.clone().add(dolly);
-
-    localFrame.position.add(delta);
-    controls.target.add(pan);
+    const dolly = viewDirection.multiplyScalar(-dollyInput * XR_DOLLY_SPEED * distance * deltaTime);
+    localFrame.position.add(dolly);
     localFrame.updateMatrixWorld(true);
   }
 }
