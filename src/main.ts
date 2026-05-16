@@ -326,8 +326,8 @@ function updateXrOrbitControls(deltaTime: number): void {
 
   if (!isDragging && !isGripPressed && thumbstick.lengthSq() > 0) {
     applyOrbitControlsRotation(
-      thumbstick.x * XR_ORBIT_SPEED * deltaTime,
-      thumbstick.y * XR_ORBIT_SPEED * deltaTime
+      thumbstick.x * XR_ORBIT_SPEED * deltaTime / TWO_PI,
+      thumbstick.y * XR_ORBIT_SPEED * deltaTime / TWO_PI
     );
   }
 
