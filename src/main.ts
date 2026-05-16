@@ -40,10 +40,12 @@ const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
 
 let initialViewDistance = 2;
 let xrDragController: THREE.Group | undefined;
+let xrDragInputSource: XRInputSource | undefined;
 let xrDragInitialized = false;
 const xrDragScreenPosition = new THREE.Vector2();
 const xrDragViewInverse = new THREE.Matrix4();
 let xrDragViewPlaneHeight = 1;
+let activeXrSession: XRSession | undefined;
 
 function bakeLocalFrameIntoCamera(): void {
   const worldPosition = new THREE.Vector3();
@@ -146,6 +148,60 @@ type XrControllerInput = {
 
 const xrControllerObjects = [renderer.xr.getController(0), renderer.xr.getController(1)];
 scene.add(...xrControllerObjects);
+
+function resetXrDrag(): void {
+  xrDragController = undefined;
+  xrDragInputSource = undefined;
+  xrDragInitialized = false;
+}
+
+function findControllerForInputSource(inputSource: XRInputSource): THREE.Group | undefined {
+  const session = renderer.xr.getSession();
+  const index = Array.from(session?.inputSources ?? []).indexOf(inputSource);
+  return index >= 0 ? xrControllerObjects[index] ?? renderer.xr.getController(index) : undefined;
+}
+
+function beginXrDrag(inputSource: XRInputSource): void {
+  xrDragInputSource = inputSource;
+  xrDragController = findControllerForInputSource(inputSource);
+  xrDragInitialized = false;
+}
+
+function endXrDrag(inputSource: XRInputSource): void {
+  if (xrDragInputSource === inputSource) resetXrDrag();
+}
+
+function attachXrSessionInputEvents(): void {
+  const session = renderer.xr.getSession();
+  if (!session || session === activeXrSession) return;
+
+  activeXrSession = session;
+  session.addEventListener("selectstart", onXrSelectStart);
+  session.addEventListener("selectend", onXrSelectEnd);
+  session.addEventListener("squeezestart", onXrSelectStart);
+  session.addEventListener("squeezeend", onXrSelectEnd);
+  session.addEventListener("end", detachXrSessionInputEvents);
+}
+
+function detachXrSessionInputEvents(): void {
+  if (!activeXrSession) return;
+
+  activeXrSession.removeEventListener("selectstart", onXrSelectStart);
+  activeXrSession.removeEventListener("selectend", onXrSelectEnd);
+  activeXrSession.removeEventListener("squeezestart", onXrSelectStart);
+  activeXrSession.removeEventListener("squeezeend", onXrSelectEnd);
+  activeXrSession.removeEventListener("end", detachXrSessionInputEvents);
+  activeXrSession = undefined;
+  resetXrDrag();
+}
+
+function onXrSelectStart(event: XRInputSourceEvent): void {
+  beginXrDrag(event.inputSource);
+}
+
+function onXrSelectEnd(event: XRInputSourceEvent): void {
+  endXrDrag(event.inputSource);
+}
 
 xrControllerObjects.forEach((controller) => {
   controller.addEventListener("selectstart", () => {
@@ -258,8 +314,8 @@ function updateXrOrbitControls(deltaTime: number): void {
 
   if (!isDragging && !isGripPressed && thumbstick.lengthSq() > 0) {
     applyOrbitControlsRotation(
-      thumbstick.x * XR_ORBIT_SPEED * deltaTime / TWO_PI,
-      thumbstick.y * XR_ORBIT_SPEED * deltaTime / TWO_PI
+      thumbstick.x * XR_ORBIT_SPEED * deltaTime,
+      thumbstick.y * XR_ORBIT_SPEED * deltaTime
     );
   }
 
@@ -292,15 +348,13 @@ const xr = new SparkXr({
   onReady: (supported) => { updateXrButton(supported, false); },
   onEnterXr: () => {
     setInitialXrView();
-    xrDragController = undefined;
-    xrDragInitialized = false;
+    attachXrSessionInputEvents();
     updateXrButton(true, true);
     controls.enabled = false;
   },
   onExitXr:  () => {
     bakeLocalFrameIntoCamera();
-    xrDragController = undefined;
-    xrDragInitialized = false;
+    detachXrSessionInputEvents();
     updateXrButton(xr.xrSupported(), false);
     controls.enabled = true;
   },
