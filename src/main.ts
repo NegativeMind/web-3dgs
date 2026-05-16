@@ -31,6 +31,15 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+const XR_DEADZONE = 0.15;
+const XR_ORBIT_SPEED = 1.8;
+const XR_PAN_SPEED = 0.8;
+const XR_DOLLY_SPEED = 1.8;
+const XR_MIN_DISTANCE = 0.05;
+const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
+
+let initialViewDistance = 2;
+
 function bakeLocalFrameIntoCamera(): void {
   const worldPosition = new THREE.Vector3();
   const worldQuaternion = new THREE.Quaternion();
@@ -48,6 +57,110 @@ function bakeLocalFrameIntoCamera(): void {
   controls.update();
 }
 
+function setInitialXrView(): void {
+  const cameraWorldPosition = new THREE.Vector3();
+  const cameraWorldQuaternion = new THREE.Quaternion();
+  camera.getWorldPosition(cameraWorldPosition);
+  camera.getWorldQuaternion(cameraWorldQuaternion);
+
+  const viewOffset = cameraWorldPosition.sub(controls.target);
+  if (viewOffset.lengthSq() === 0) viewOffset.set(0, 0, initialViewDistance);
+  viewOffset.setLength(initialViewDistance * XR_INITIAL_DISTANCE_MULTIPLIER);
+
+  localFrame.position.copy(controls.target).add(viewOffset);
+  localFrame.quaternion.copy(cameraWorldQuaternion);
+  localFrame.scale.set(1, 1, 1);
+  localFrame.updateMatrixWorld(true);
+
+  camera.position.set(0, 0, 0);
+  camera.quaternion.identity();
+  camera.updateMatrixWorld(true);
+}
+
+function applyDeadzone(value: number): number {
+  return Math.abs(value) < XR_DEADZONE ? 0 : value;
+}
+
+function readThumbstick(gamepad?: Gamepad): THREE.Vector2 {
+  if (!gamepad) return new THREE.Vector2();
+
+  const primary = new THREE.Vector2(
+    applyDeadzone(gamepad.axes[2] ?? 0),
+    applyDeadzone(gamepad.axes[3] ?? 0)
+  );
+  const fallback = new THREE.Vector2(
+    applyDeadzone(gamepad.axes[0] ?? 0),
+    applyDeadzone(gamepad.axes[1] ?? 0)
+  );
+
+  return primary.lengthSq() >= fallback.lengthSq() ? primary : fallback;
+}
+
+function getXrGamepads(): { left?: Gamepad; right?: Gamepad } {
+  const session = renderer.xr.getSession();
+  const gamepads: { left?: Gamepad; right?: Gamepad } = {};
+
+  for (const source of session?.inputSources ?? []) {
+    if (!source.gamepad) continue;
+    if (source.handedness === "left") gamepads.left = source.gamepad;
+    if (source.handedness === "right") gamepads.right = source.gamepad;
+  }
+
+  return gamepads;
+}
+
+function rotateLocalFrameAroundTarget(rotation: THREE.Quaternion): void {
+  localFrame.position.sub(controls.target);
+  localFrame.position.applyQuaternion(rotation);
+  localFrame.position.add(controls.target);
+  localFrame.quaternion.premultiply(rotation);
+  localFrame.updateMatrixWorld(true);
+}
+
+function updateXrOrbitControls(deltaTime: number): void {
+  const { left, right } = getXrGamepads();
+  const orbit = readThumbstick(right);
+  const move = readThumbstick(left);
+
+  if (orbit.lengthSq() > 0) {
+    const yaw = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      -orbit.x * XR_ORBIT_SPEED * deltaTime
+    );
+
+    const cameraWorldQuaternion = new THREE.Quaternion();
+    camera.getWorldQuaternion(cameraWorldQuaternion);
+    const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
+    const pitch = new THREE.Quaternion().setFromAxisAngle(
+      cameraRight,
+      -orbit.y * XR_ORBIT_SPEED * deltaTime
+    );
+
+    rotateLocalFrameAroundTarget(yaw);
+    rotateLocalFrameAroundTarget(pitch);
+  }
+
+  if (move.lengthSq() > 0) {
+    const cameraPosition = new THREE.Vector3();
+    const cameraWorldQuaternion = new THREE.Quaternion();
+    camera.getWorldPosition(cameraPosition);
+    camera.getWorldQuaternion(cameraWorldQuaternion);
+
+    const distance = Math.max(cameraPosition.distanceTo(controls.target), XR_MIN_DISTANCE);
+    const rightVector = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
+    const viewDirection = new THREE.Vector3();
+    camera.getWorldDirection(viewDirection);
+
+    const pan = rightVector.multiplyScalar(-move.x * XR_PAN_SPEED * distance * deltaTime);
+    const dolly = viewDirection.multiplyScalar(-move.y * XR_DOLLY_SPEED * distance * deltaTime);
+    const delta = pan.clone().add(dolly);
+
+    localFrame.position.add(delta);
+    controls.target.add(pan);
+    localFrame.updateMatrixWorld(true);
+  }
+}
+
 // --- XR ---
 const vrButton = document.getElementById("vr-button") as HTMLButtonElement;
 function updateXrButton(supported: boolean, presenting: boolean): void {
@@ -59,9 +172,9 @@ const xr = new SparkXr({
   renderer,
   element: vrButton,
   onMouseLeaveOpacity: 0.5,
-  controllers: {},
   onReady: (supported) => { updateXrButton(supported, false); },
   onEnterXr: () => {
+    setInitialXrView();
     updateXrButton(true, true);
     controls.enabled = false;
   },
@@ -104,6 +217,7 @@ async function loadSplat(url: string): Promise<void> {
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
     const distance = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
+    initialViewDistance = distance;
 
     controls.target.copy(center);
     camera.position.copy(center).add(new THREE.Vector3(0, 0, distance));
@@ -128,8 +242,17 @@ window.addEventListener("resize", () => {
 });
 
 // --- Render loop ---
+let lastFrameTime = performance.now();
 renderer.setAnimationLoop(() => {
-  controls.update();
-  if (renderer.xr.isPresenting) xr.updateControllers(camera);
+  const now = performance.now();
+  const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.1);
+  lastFrameTime = now;
+
+  if (renderer.xr.isPresenting) {
+    updateXrOrbitControls(deltaTime);
+  } else {
+    controls.update();
+  }
+
   renderer.render(scene, camera);
 });
