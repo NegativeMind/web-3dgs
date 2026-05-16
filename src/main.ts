@@ -33,7 +33,6 @@ controls.dampingFactor = 0.05;
 
 const TWO_PI = Math.PI * 2;
 const XR_DEADZONE = 0.15;
-const XR_ORBIT_SPEED = 1.8;
 const XR_DRAG_POSITION_SCALE = 1.2;
 const XR_DOLLY_SPEED = 1.8;
 const XR_MIN_DISTANCE = 0.05;
@@ -350,17 +349,9 @@ function getActiveThumbstickInput(inputs: XrControllerInput[]): { input?: XrCont
 function updateXrOrbitControls(deltaTime: number): void {
   const inputs = getXrControllerInputs();
   const isDragging = updateXrDragOrbit(inputs);
-  const { input, thumbstick } = getActiveThumbstickInput(inputs);
-  const isGripPressed = input?.gamepad.buttons[1]?.pressed ?? false;
+  const { thumbstick } = getActiveThumbstickInput(inputs);
 
-  if (!isDragging && !isGripPressed && thumbstick.lengthSq() > 0) {
-    applyOrbitControlsRotation(
-      thumbstick.x * XR_ORBIT_SPEED * deltaTime / TWO_PI,
-      thumbstick.y * XR_ORBIT_SPEED * deltaTime / TWO_PI
-    );
-  }
-
-  const dollyInput = !isDragging && isGripPressed ? thumbstick.y : 0;
+  const dollyInput = isDragging ? 0 : thumbstick.y;
   if (dollyInput !== 0) {
     const cameraPosition = new THREE.Vector3();
     camera.getWorldPosition(cameraPosition);
