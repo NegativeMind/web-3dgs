@@ -155,21 +155,29 @@ function rotateObjectAroundTarget(object: THREE.Object3D, rotation: THREE.Quater
 function applyObjectRotation(deltaX: number, deltaY: number): void {
   if (!splatObject) return;
 
-  const yaw = new THREE.Quaternion().setFromAxisAngle(
-    new THREE.Vector3(0, 1, 0),
-    TWO_PI * deltaX * controls.rotateSpeed
-  );
+  if (deltaX !== 0) {
+    const yaw = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      TWO_PI * deltaX * controls.rotateSpeed
+    );
+    rotateObjectAroundTarget(splatObject, yaw);
+  }
 
-  const cameraWorldQuaternion = new THREE.Quaternion();
-  camera.getWorldQuaternion(cameraWorldQuaternion);
-  const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
-  const pitch = new THREE.Quaternion().setFromAxisAngle(
-    cameraRight,
-    TWO_PI * deltaY * controls.rotateSpeed
-  );
+  if (deltaY !== 0) {
+    const cameraWorldQuaternion = new THREE.Quaternion();
+    camera.getWorldQuaternion(cameraWorldQuaternion);
+    const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion);
+    cameraRight.y = 0;
 
-  rotateObjectAroundTarget(splatObject, yaw);
-  rotateObjectAroundTarget(splatObject, pitch);
+    if (cameraRight.lengthSq() > 0) {
+      cameraRight.normalize();
+      const pitch = new THREE.Quaternion().setFromAxisAngle(
+        cameraRight,
+        TWO_PI * deltaY * controls.rotateSpeed
+      );
+      rotateObjectAroundTarget(splatObject, pitch);
+    }
+  }
 }
 
 function updateObjectSpin(deltaTime: number): void {
@@ -344,6 +352,9 @@ function updateXrDragOrbit(inputs: XrControllerInput[]): boolean {
   xrDragScreenPosition.copy(currentScreenPosition);
 
   if (delta.lengthSq() === 0) return true;
+
+  if (Math.abs(delta.x) > Math.abs(delta.y) * 1.25) delta.y = 0;
+  if (Math.abs(delta.y) > Math.abs(delta.x) * 1.25) delta.x = 0;
 
   objectSpinVelocity.copy(delta).multiplyScalar(60);
   applyObjectRotation(delta.x, delta.y);
