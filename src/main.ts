@@ -48,6 +48,7 @@ const xrDragScreenPosition = new THREE.Vector2();
 const xrDragViewInverse = new THREE.Matrix4();
 let xrDragViewPlaneHeight = 1;
 let activeXrSession: XRSession | undefined;
+let splatObject: THREE.Object3D | undefined;
 
 function bakeLocalFrameIntoCamera(): void {
   const worldPosition = new THREE.Vector3();
@@ -139,6 +140,34 @@ function applyOrbitControlsRotation(deltaX: number, deltaY: number): void {
   const nextQuaternion = new THREE.Quaternion().setFromRotationMatrix(lookAtMatrix);
 
   placeLocalFrameForCameraWorld(nextPosition, nextQuaternion);
+}
+
+function rotateObjectAroundTarget(object: THREE.Object3D, rotation: THREE.Quaternion): void {
+  object.position.sub(controls.target);
+  object.position.applyQuaternion(rotation);
+  object.position.add(controls.target);
+  object.quaternion.premultiply(rotation);
+  object.updateMatrixWorld(true);
+}
+
+function applyObjectRotation(deltaX: number, deltaY: number): void {
+  if (!splatObject) return;
+
+  const yaw = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    TWO_PI * deltaX * controls.rotateSpeed
+  );
+
+  const cameraWorldQuaternion = new THREE.Quaternion();
+  camera.getWorldQuaternion(cameraWorldQuaternion);
+  const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraWorldQuaternion).normalize();
+  const pitch = new THREE.Quaternion().setFromAxisAngle(
+    cameraRight,
+    TWO_PI * deltaY * controls.rotateSpeed
+  );
+
+  rotateObjectAroundTarget(splatObject, yaw);
+  rotateObjectAroundTarget(splatObject, pitch);
 }
 
 type XrControllerInput = {
@@ -307,7 +336,7 @@ function updateXrDragOrbit(inputs: XrControllerInput[]): boolean {
 
   if (delta.lengthSq() === 0) return true;
 
-  applyOrbitControlsRotation(delta.x, delta.y);
+  applyObjectRotation(delta.x, delta.y);
   return true;
 }
 
@@ -386,6 +415,7 @@ async function loadSplat(url: string): Promise<void> {
     mesh3d = splatMesh as unknown as THREE.Object3D;
     mesh3d.rotation.x = Math.PI; // COLMAP 座標系補正
     scene.add(mesh3d);
+    splatObject = mesh3d;
 
     const timeout = new Promise<never>((_, reject) =>
       timeoutId = setTimeout(() => reject(new Error(`Load timeout: ${url}`)), 60000)
@@ -412,6 +442,7 @@ async function loadSplat(url: string): Promise<void> {
   } catch (err) {
     console.error("[3DGS] Failed to load splat:", err);
     if (mesh3d) scene.remove(mesh3d);
+    if (splatObject === mesh3d) splatObject = undefined;
     splatMesh?.dispose();
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
