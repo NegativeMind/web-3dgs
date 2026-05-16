@@ -33,11 +33,11 @@ controls.dampingFactor = 0.05;
 
 const TWO_PI = Math.PI * 2;
 const XR_DEADZONE = 0.15;
-const XR_DRAG_POSITION_SCALE = 2.0;
+const XR_DRAG_POSITION_SCALE = 3.0;
 const XR_DOLLY_SPEED = 1.8;
 const XR_MIN_DISTANCE = 0.05;
 const XR_INITIAL_DISTANCE_MULTIPLIER = 1;
-const XR_SPIN_DAMPING = 3.2;
+const XR_SPIN_DAMPING = 1.4;
 const XR_SPIN_STOP_EPSILON = 0.000001;
 
 let initialViewDistance = 2;
