@@ -6,6 +6,7 @@ Web 3D Gaussian Splatting viewer built with Vite, Three.js, and Spark.
 
 - Loads a local `.sog` Gaussian splat from `public/3dgs/`.
 - Desktop/browser view uses `OrbitControls`.
+- Viewer options can switch between object scenes and immersive scenes.
 - WebXR mode prefers MR/AR passthrough on supported headsets, with VR fallback.
 - Meta Quest-style XR controls:
   - HMD movement remains natural.
@@ -27,11 +28,16 @@ The dev server runs on `http://localhost:5173`.
 
 ## Project Structure
 
-- `src/main.ts` - App bootstrap, renderer/scene setup, splat loading, render loop.
+- `src/main.ts` - App bootstrap that wires DOM elements into the viewer.
+- `src/3dgs-viewer.ts` - Reusable 3DGS viewer class for renderer/scene setup, splat loading, XR, resize, and render loop.
 - `src/xrObjectControls.ts` - WebXR controller input, object rotation, zoom, and inertia.
 - `src/style.scss` - Fullscreen canvas and XR button styling.
 - `public/3dgs/` - Runtime 3DGS assets served by Vite.
 - `raw_3dgs/` - Source/raw 3DGS files.
+
+## Viewer Options
+
+Use `sceneType: "object"` for object-style splats that should orbit around the model. Use `sceneType: "immersive"` for scene-style splats that should use Spark's first-person/pointer controls.
 
 ## WebXR Notes
 
