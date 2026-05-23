@@ -37,7 +37,13 @@ The dev server runs on `http://localhost:5173`.
 
 ## Viewer Options
 
-Use `sceneType: "object"` for object-style splats that should orbit around the model. Use `sceneType: "immersive"` for scene-style splats that should use Spark's first-person/pointer controls.
+Set viewer options on `#app` in `src/index.html`:
+
+```html
+<div id="app" data-splat-url="./3dgs/gmk.sog" data-scene-type="object">
+```
+
+Use `data-scene-type="object"` for object-style splats that should orbit around the model. Use `data-scene-type="immersive"` for scene-style splats that should use Spark's first-person/pointer controls.
 
 ## WebXR Notes
 
