@@ -1,9 +1,40 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const widgetFilePath = fileURLToPath(new URL("cdn/widget.js", import.meta.url));
+const CDN_WIDGET_URL =
+  "https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widget.js";
+
+const serveLocalWidgetPlugin: Plugin = {
+  name: "serve-local-widget",
+  configureServer(server) {
+    server.middlewares.use("/cdn/widget.js", (_req, res, next) => {
+      try {
+        const content = readFileSync(widgetFilePath);
+        res.setHeader("Content-Type", "application/javascript");
+        res.end(content);
+      } catch {
+        next();
+      }
+    });
+  },
+  transformIndexHtml: {
+    order: "pre",
+    handler(html, ctx) {
+      if (ctx.server) {
+        return html.replace(CDN_WIDGET_URL, "/cdn/widget.js");
+      }
+      return html;
+    },
+  },
+};
 
 export default defineConfig({
   root: "src",
   base: "./",
   publicDir: "../public",
+  plugins: [serveLocalWidgetPlugin],
   build: {
     outDir: "../dist",
     emptyOutDir: true,

@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run build:widget && vite",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
+    "build:widget": "vite build --config vite.widget.config.ts",
+    "build:all": "npm run build:widget && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@playcanvas/splat-transform": "^2.1.1",
+    "@types/node": "^25.9.1",
     "@types/three": "^0.184.1",
     "sass": "^1.99.0",
     "typescript": "^5.7.3",

@@ -16,6 +16,8 @@ export type ThreeDgsViewerOptions = {
   loadingElement: HTMLElement;
   splatUrl: string;
   sceneType?: ThreeDgsSceneType;
+  /** If provided, sizes the renderer to this element instead of the window. */
+  container?: HTMLElement;
 };
 
 export class ThreeDgsViewer {
@@ -34,6 +36,7 @@ export class ThreeDgsViewer {
   private splatObject?: THREE.Object3D;
   private lastFrameTime = performance.now();
   private disposed = false;
+  private resizeObserver?: ResizeObserver;
 
   constructor(private readonly options: ThreeDgsViewerOptions) {
     this.sceneType = options.sceneType ?? "object";
@@ -45,14 +48,14 @@ export class ThreeDgsViewer {
     });
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(this.viewportWidth, this.viewportHeight);
 
     this.scene = new THREE.Scene();
     this.scene.background = null;
 
     this.camera = new THREE.PerspectiveCamera(
       60,
-      window.innerWidth / window.innerHeight,
+      this.viewportWidth / this.viewportHeight,
       0.01,
       1000
     );
@@ -103,7 +106,20 @@ export class ThreeDgsViewer {
       },
     });
 
-    window.addEventListener("resize", this.resize);
+    if (options.container) {
+      this.resizeObserver = new ResizeObserver(this.resize);
+      this.resizeObserver.observe(options.container);
+    } else {
+      window.addEventListener("resize", this.resize);
+    }
+  }
+
+  private get viewportWidth(): number {
+    return Math.max(1, this.options.container?.clientWidth ?? window.innerWidth);
+  }
+
+  private get viewportHeight(): number {
+    return Math.max(1, this.options.container?.clientHeight ?? window.innerHeight);
   }
 
   async start(): Promise<void> {
@@ -113,7 +129,12 @@ export class ThreeDgsViewer {
 
   dispose(): void {
     this.disposed = true;
-    window.removeEventListener("resize", this.resize);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = undefined;
+    } else {
+      window.removeEventListener("resize", this.resize);
+    }
     this.renderer.setAnimationLoop(null);
     this.orbitControls?.dispose();
     this.clearSplat();
@@ -185,9 +206,11 @@ export class ThreeDgsViewer {
   }
 
   private resize = (): void => {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const w = this.viewportWidth;
+    const h = this.viewportHeight;
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(w, h);
   };
 
   private render = (): void => {
