@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build:widget && vite",
+    "dev": "concurrently -k -n widget,vite \"npm run build:widget:watch\" \"vite\"",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "build:widget": "vite build --config vite.widget.config.ts",
+    "build:widget:watch": "vite build --watch --config vite.widget.config.ts",
     "build:all": "npm run build:widget && npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "convert": "node --experimental-strip-types scripts/convert.ts"
   },
   "dependencies": {
     "@sparkjsdev/spark": "^2.0.0",
@@ -19,6 +21,7 @@
     "@playcanvas/splat-transform": "^2.1.1",
     "@types/node": "^25.9.1",
     "@types/three": "^0.184.1",
+    "concurrently": "^9.2.1",
     "sass": "^1.99.0",
     "typescript": "^5.7.3",
     "vite": "^6.3.5"

@@ -1,8 +1,8 @@
-import { ThreeDgsViewer, type ThreeDgsSceneType } from "./3dgs-viewer";
+import { SplatViewer, type ThreeDgsSceneType } from "./splat-viewer";
 import STYLES from "./style.scss?inline";
 
-class ThreeDgsViewerElement extends HTMLElement {
-  private viewer?: ThreeDgsViewer;
+class SplatViewerElement extends HTMLElement {
+  private viewer?: SplatViewer;
 
   static get observedAttributes(): string[] {
     return ["width", "height"];
@@ -49,7 +49,7 @@ class ThreeDgsViewerElement extends HTMLElement {
     const sceneType: ThreeDgsSceneType =
       rawSceneType === "immersive" ? "immersive" : "object";
 
-    this.viewer = new ThreeDgsViewer({
+    this.viewer = new SplatViewer({
       canvas,
       vrButton,
       loadingElement: loading,
@@ -68,5 +68,5 @@ class ThreeDgsViewerElement extends HTMLElement {
 }
 
 if (!customElements.get("threedgs-viewer")) {
-  customElements.define("threedgs-viewer", ThreeDgsViewerElement);
+  customElements.define("threedgs-viewer", SplatViewerElement);
 }

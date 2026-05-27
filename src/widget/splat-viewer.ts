@@ -10,7 +10,7 @@ import { XrObjectControls } from "./xrObjectControls";
 
 export type ThreeDgsSceneType = "object" | "immersive";
 
-export type ThreeDgsViewerOptions = {
+export type SplatViewerOptions = {
   canvas: HTMLCanvasElement;
   vrButton: HTMLButtonElement;
   loadingElement: HTMLElement;
@@ -20,7 +20,7 @@ export type ThreeDgsViewerOptions = {
   container?: HTMLElement;
 };
 
-export class ThreeDgsViewer {
+export class SplatViewer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
@@ -38,7 +38,7 @@ export class ThreeDgsViewer {
   private disposed = false;
   private resizeObserver?: ResizeObserver;
 
-  constructor(private readonly options: ThreeDgsViewerOptions) {
+  constructor(private readonly options: SplatViewerOptions) {
     this.sceneType = options.sceneType ?? "object";
 
     this.renderer = new THREE.WebGLRenderer({
@@ -81,6 +81,10 @@ export class ThreeDgsViewer {
     } else {
       this.sparkControls = new SparkControls({ canvas: options.canvas });
       this.sparkControls.fpsMovement.xr = this.renderer.xr;
+      this.sparkControls.pointerControls.reverseRotate = true;
+      this.sparkControls.pointerControls.reverseSlide = true;
+      this.sparkControls.pointerControls.reverseSwipe = false;
+      this.sparkControls.pointerControls.reverseScroll = false;
     }
 
     this.xr = new SparkXr({
