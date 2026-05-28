@@ -2,6 +2,7 @@ const CDN_URL = "https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widg
 
 const form = document.getElementById("generatorForm") as HTMLFormElement;
 const urlInput = document.getElementById("splatUrl") as HTMLInputElement;
+const collisionUrlInput = document.getElementById("collisionUrl") as HTMLInputElement;
 const sceneTypeSelect = document.getElementById("sceneType") as HTMLSelectElement;
 const widthInput = document.getElementById("viewerWidth") as HTMLInputElement;
 const heightInput = document.getElementById("viewerHeight") as HTMLInputElement;
@@ -35,6 +36,7 @@ form.addEventListener("submit", (e: Event) => {
   const sceneType = sceneTypeSelect.value;
   const width = `${Math.max(100, Math.min(3840, parseInt(widthInput.value) || 800))}px`;
   const height = `${Math.max(200, Math.min(1200, parseInt(heightInput.value) || 480))}px`;
+  const collisionUrl = collisionUrlInput.value.trim();
 
   previewArea.innerHTML = "";
   const viewer = document.createElement("threedgs-viewer");
@@ -42,9 +44,11 @@ form.addEventListener("submit", (e: Event) => {
   viewer.setAttribute("scene-type", sceneType);
   viewer.setAttribute("width", width);
   viewer.setAttribute("height", height);
+  if (collisionUrl) viewer.setAttribute("collision-src", collisionUrl);
   previewArea.appendChild(viewer);
 
-  const tag = `<threedgs-viewer src="${url}" scene-type="${sceneType}" width="${width}" height="${height}"></threedgs-viewer>`;
+  const collisionAttr = collisionUrl ? ` collision-src="${collisionUrl}"` : "";
+  const tag = `<threedgs-viewer src="${url}"${collisionAttr} scene-type="${sceneType}" width="${width}" height="${height}"></threedgs-viewer>`;
   const script = `<script src="${CDN_URL}"><\/script>`;
   embedCode.textContent = `${tag}\n${script}`;
 

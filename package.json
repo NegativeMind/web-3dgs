@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@sparkjsdev/spark": "^2.0.0",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "three-mesh-bvh": "^0.9.10"
   },
   "devDependencies": {
     "@playcanvas/splat-transform": "^2.1.1",

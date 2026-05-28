@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
   SparkControls,
   SparkRenderer,
   SplatMesh,
   SparkXr,
 } from "@sparkjsdev/spark";
+import { MeshBVH, type ExtendedTriangle } from "three-mesh-bvh";
 import { XrObjectControls } from "./xrObjectControls";
 
 export type ThreeDgsSceneType = "object" | "immersive";
@@ -16,6 +18,10 @@ export type SplatViewerOptions = {
   loadingElement: HTMLElement;
   splatUrl: string;
   sceneType?: ThreeDgsSceneType;
+  /** URL to a .collision.glb file for BVH-based collision detection. */
+  collisionUrl?: string;
+  /** Show collision mesh as green wireframe for debugging. Default: false. */
+  debugCollision?: boolean;
   /** If provided, sizes the renderer to this element instead of the window. */
   container?: HTMLElement;
 };
@@ -32,6 +38,11 @@ export class SplatViewer {
   private readonly localFrame = new THREE.Group();
   private readonly xrObjectControls?: XrObjectControls;
   private readonly xr: SparkXr;
+  private readonly cameraCollisionRadius = 0.15;
+  collisionMesh?: THREE.Group;
+  private _lastDebugTime = 0;
+  private readonly prevCamWorld = new THREE.Vector3();
+
   private splatMesh?: SplatMesh;
   private splatObject?: THREE.Object3D;
   private lastFrameTime = performance.now();
@@ -127,7 +138,9 @@ export class SplatViewer {
   }
 
   async start(): Promise<void> {
-    await this.loadSplat(this.options.splatUrl);
+    const tasks: Promise<void>[] = [this.loadSplat(this.options.splatUrl)];
+    if (this.options.collisionUrl) tasks.push(this.loadCollision(this.options.collisionUrl));
+    await Promise.all(tasks);
     this.renderer.setAnimationLoop(this.render);
   }
 
@@ -142,6 +155,7 @@ export class SplatViewer {
     this.renderer.setAnimationLoop(null);
     this.orbitControls?.dispose();
     this.clearSplat();
+    this.clearCollision();
     this.renderer.dispose();
   }
 
@@ -201,12 +215,161 @@ export class SplatViewer {
     this.orbitControls.update();
   }
 
+  private applyCameraCollision(): void {
+    if (!this.collisionMesh) {
+      const now = performance.now();
+      if (now - this._lastDebugTime > 3000) {
+        console.warn("[3DGS collision] collisionMesh is null — no collision active");
+        this._lastDebugTime = now;
+      }
+      return;
+    }
+
+    // Capsule sweep: segment from camera position before controls ran (prevCamWorld)
+    // to position after controls ran (camWorldAfter).  This catches tunneling when
+    // the camera moves more than the sphere radius in a single frame.
+    const camWorldAfter = this.camera.getWorldPosition(new THREE.Vector3());
+    const camWorldAfterOrig = camWorldAfter.clone();
+
+    this.collisionMesh.updateWorldMatrix(true, true);
+
+    const triPoint = new THREE.Vector3();
+    const segPoint = new THREE.Vector3();
+    const pushDir = new THREE.Vector3();
+    const r = this.cameraCollisionRadius;
+    let totalHits = 0;
+    let meshNodeCount = 0;
+
+    this.collisionMesh.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      if (!node.geometry.boundsTree) {
+        console.warn(`[3DGS collision] node "${node.name}" has no boundsTree`);
+        return;
+      }
+      meshNodeCount++;
+      const bvh = node.geometry.boundsTree as MeshBVH;
+      const invMat = node.matrixWorld.clone().invert();
+
+      // Transform sweep segment into this mesh's local space
+      const segStart = this.prevCamWorld.clone().applyMatrix4(invMat);
+      const segEnd   = camWorldAfter.clone().applyMatrix4(invMat);
+      const segment  = new THREE.Line3(segStart, segEnd);
+
+      // AABB enclosing the whole capsule for fast BVH node rejection
+      const capsuleBox = new THREE.Box3().makeEmpty();
+      capsuleBox.expandByPoint(segStart);
+      capsuleBox.expandByPoint(segEnd);
+      capsuleBox.min.subScalar(r);
+      capsuleBox.max.addScalar(r);
+
+      bvh.shapecast({
+        intersectsBounds: (box) => box.intersectsBox(capsuleBox),
+        intersectsTriangle: (tri) => {
+          const distance = (tri as unknown as ExtendedTriangle).closestPointToSegment(
+            segment, triPoint, segPoint
+          );
+          if (distance < r) {
+            totalHits++;
+            const depth = r - distance;
+            pushDir.subVectors(segPoint, triPoint);
+            if (pushDir.lengthSq() < 1e-10) tri.getNormal(pushDir);
+            else pushDir.normalize();
+            // Push both capsule endpoints uniformly so the segment stays intact
+            segStart.addScaledVector(pushDir, depth);
+            segEnd.addScaledVector(pushDir, depth);
+            capsuleBox.min.addScaledVector(pushDir, depth);
+            capsuleBox.max.addScaledVector(pushDir, depth);
+          }
+        },
+      });
+
+      // Convert pushed segment end back to world space
+      camWorldAfter.copy(segEnd).applyMatrix4(node.matrixWorld);
+    });
+
+    const now = performance.now();
+    if (now - this._lastDebugTime > 3000) {
+      const c = camWorldAfterOrig;
+      console.log(
+        `[3DGS collision] nodes=${meshNodeCount} ` +
+        `cam=(${c.x.toFixed(2)},${c.y.toFixed(2)},${c.z.toFixed(2)}) ` +
+        `hits=${totalHits} push=${camWorldAfter.distanceTo(camWorldAfterOrig).toFixed(4)}`
+      );
+      this._lastDebugTime = now;
+    }
+
+    const delta = new THREE.Vector3().subVectors(camWorldAfter, camWorldAfterOrig);
+    if (delta.lengthSq() < 1e-10) return;
+
+    console.log(`[3DGS collision] PUSH len=${delta.length().toFixed(4)} delta=(${delta.x.toFixed(3)},${delta.y.toFixed(3)},${delta.z.toFixed(3)})`);
+
+    if (this.orbitControls) {
+      // Move camera AND orbit target by the same world-space delta so OrbitControls
+      // recomputes the same camera-to-target offset next frame (no fighting).
+      this.localFrame.worldToLocal(camWorldAfter);
+      this.camera.position.copy(camWorldAfter);
+      this.orbitControls.target.add(delta);
+    } else {
+      // SparkControls / XR: push the movement frame so controls continue from the
+      // corrected position next frame.
+      this.localFrame.position.add(delta);
+    }
+  }
+
   private clearSplat(): void {
     if (this.splatObject) this.scene.remove(this.splatObject);
     this.xrObjectControls?.setObject(undefined);
     this.splatMesh?.dispose();
     this.splatMesh = undefined;
     this.splatObject = undefined;
+  }
+
+  private async loadCollision(url: string): Promise<void> {
+    try {
+      const result = await new GLTFLoader().loadAsync(url);
+      const group = result.scene;
+      group.rotation.y = Math.PI;
+      let meshCount = 0;
+      group.traverse((node) => {
+        if (!(node instanceof THREE.Mesh)) return;
+        node.geometry.boundsTree = new MeshBVH(node.geometry);
+        if (this.options.debugCollision) {
+          node.material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true, transparent: true, opacity: 0.5 });
+          node.visible = true;
+        } else {
+          node.visible = false;
+        }
+        meshCount++;
+        console.log(
+          `[3DGS collision] BVH built: "${node.name}" ` +
+          `tris=${node.geometry.index ? node.geometry.index.count / 3 : node.geometry.attributes.position.count / 3}`
+        );
+      });
+      this.scene.add(group);
+      group.updateMatrixWorld(true);
+      const worldBox = new THREE.Box3().setFromObject(group);
+      console.log(
+        `[3DGS collision] loaded ${meshCount} mesh(es). ` +
+        `world box: min=${worldBox.min.toArray().map(v => v.toFixed(2))} ` +
+        `max=${worldBox.max.toArray().map(v => v.toFixed(2))}`
+      );
+      this.collisionMesh = group;
+    } catch (err) {
+      console.error("[3DGS] Failed to load collision mesh:", err);
+    }
+  }
+
+  private clearCollision(): void {
+    if (!this.collisionMesh) return;
+    this.scene.remove(this.collisionMesh);
+    this.collisionMesh.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      node.geometry.boundsTree = undefined;
+      node.geometry.dispose();
+      if (Array.isArray(node.material)) node.material.forEach((m) => m.dispose());
+      else node.material.dispose();
+    });
+    this.collisionMesh = undefined;
   }
 
   private resize = (): void => {
@@ -224,6 +387,9 @@ export class SplatViewer {
     const deltaTime = Math.min((now - this.lastFrameTime) / 1000, 0.1);
     this.lastFrameTime = now;
 
+    // Save world position BEFORE controls move the camera (used by capsule sweep)
+    this.camera.getWorldPosition(this.prevCamWorld);
+
     if (this.renderer.xr.isPresenting && this.xrObjectControls) {
       this.xrObjectControls?.update(deltaTime);
     } else if (this.orbitControls) {
@@ -231,6 +397,8 @@ export class SplatViewer {
     } else {
       this.sparkControls?.update(this.localFrame, this.camera);
     }
+
+    this.applyCameraCollision();
 
     this.renderer.render(this.scene, this.camera);
   };

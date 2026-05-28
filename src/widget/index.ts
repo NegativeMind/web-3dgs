@@ -48,6 +48,8 @@ class SplatViewerElement extends HTMLElement {
     const rawSceneType = this.getAttribute("scene-type") ?? "object";
     const sceneType: ThreeDgsSceneType =
       rawSceneType === "immersive" ? "immersive" : "object";
+    const collisionUrl = this.getAttribute("collision-src") ?? undefined;
+    const debugCollision = this.hasAttribute("debug-collision");
 
     this.viewer = new SplatViewer({
       canvas,
@@ -55,6 +57,8 @@ class SplatViewerElement extends HTMLElement {
       loadingElement: loading,
       splatUrl: src,
       sceneType,
+      collisionUrl,
+      debugCollision,
       container: this,
     });
 
