@@ -34,21 +34,23 @@ form.addEventListener("submit", (e: Event) => {
   }
 
   const sceneType = sceneTypeSelect.value;
-  const width = `${Math.max(100, Math.min(3840, parseInt(widthInput.value) || 800))}px`;
-  const height = `${Math.max(200, Math.min(1200, parseInt(heightInput.value) || 480))}px`;
+  const width = widthInput.value.trim();
+  const height = heightInput.value.trim();
   const collisionUrl = collisionUrlInput.value.trim();
 
   previewArea.innerHTML = "";
   const viewer = document.createElement("splat-viewer");
   viewer.setAttribute("src", url);
   viewer.setAttribute("scene-type", sceneType);
-  viewer.setAttribute("width", width);
-  viewer.setAttribute("height", height);
+  if (width) viewer.setAttribute("width", width);
+  if (height) viewer.setAttribute("height", height);
   if (collisionUrl) viewer.setAttribute("collision-src", collisionUrl);
   previewArea.appendChild(viewer);
 
   const collisionAttr = collisionUrl ? ` collision-src="${collisionUrl}"` : "";
-  const tag = `<splat-viewer src="${url}"${collisionAttr} scene-type="${sceneType}" width="${width}" height="${height}"></splat-viewer>`;
+  const widthAttr = width ? ` width="${width}"` : "";
+  const heightAttr = height ? ` height="${height}"` : "";
+  const tag = `<splat-viewer src="${url}"${collisionAttr} scene-type="${sceneType}"${widthAttr}${heightAttr}></splat-viewer>`;
   const script = `<script src="${CDN_URL}"><\/script>`;
   embedCode.textContent = `${tag}\n${script}`;
 
