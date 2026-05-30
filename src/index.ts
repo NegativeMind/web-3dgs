@@ -1,4 +1,4 @@
-import { SplatViewer, type ThreeDgsSceneType } from "./splat-viewer";
+import { SplatViewer, type SplatSceneType } from "./splat-viewer";
 import STYLES from "./style.scss?inline";
 
 class SplatViewerElement extends HTMLElement {
@@ -46,7 +46,7 @@ class SplatViewerElement extends HTMLElement {
 
     const src = this.getAttribute("src") ?? "";
     const rawSceneType = this.getAttribute("scene-type") ?? "object";
-    const sceneType: ThreeDgsSceneType =
+    const sceneType: SplatSceneType =
       rawSceneType === "immersive" ? "immersive" : "object";
     const collisionUrl = this.getAttribute("collision-src") ?? undefined;
     const debugCollision = this.hasAttribute("debug-collision");
@@ -71,6 +71,6 @@ class SplatViewerElement extends HTMLElement {
   }
 }
 
-if (!customElements.get("threedgs-viewer")) {
-  customElements.define("threedgs-viewer", SplatViewerElement);
+if (!customElements.get("splat-viewer")) {
+  customElements.define("splat-viewer", SplatViewerElement);
 }

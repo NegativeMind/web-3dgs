@@ -28,7 +28,7 @@ tests/                  ← ローカル動作確認用テストページ
 ├── test-build.html     ← ビルド済み dist/3dgs-viewer.js を確認（要 npm run build:widget）
 └── test-cdn.html       ← CDN 配信版を確認（タグ作成後）
 src/                    ← ウィジェットソース
-├── index.ts            ← Custom Element 定義（<threedgs-viewer>）
+├── index.ts            ← Custom Element 定義（<splat-viewer>）
 ├── splat-viewer.ts     ← SplatViewer クラス
 ├── xrObjectControls.ts ← XR コントローラー操作
 ├── style.scss          ← Shadow DOM 内スタイル
@@ -40,10 +40,10 @@ dist/                   ← ビルド成果物（.gitignore、dist/3dgs-viewer.j
 
 ### ウィジェット（Custom Element）
 
-`<threedgs-viewer>` という Custom Element として実装。Shadow DOM でスタイルを分離している。
+`<splat-viewer>` という Custom Element として実装。Shadow DOM でスタイルを分離している。
 
 ```html
-<threedgs-viewer src="https://example.com/model.sog" scene-type="object" width="100%" height="480px"></threedgs-viewer>
+<splat-viewer src="https://example.com/model.sog" scene-type="object" width="100%" height="480px"></splat-viewer>
 <script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js"></script>
 ```
 

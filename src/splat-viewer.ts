@@ -10,14 +10,14 @@ import {
 import { MeshBVH, type ExtendedTriangle } from "three-mesh-bvh";
 import { XrObjectControls } from "./xrObjectControls";
 
-export type ThreeDgsSceneType = "object" | "immersive";
+export type SplatSceneType = "object" | "immersive";
 
 export type SplatViewerOptions = {
   canvas: HTMLCanvasElement;
   vrButton: HTMLButtonElement;
   loadingElement: HTMLElement;
   splatUrl: string;
-  sceneType?: ThreeDgsSceneType;
+  sceneType?: SplatSceneType;
   /** URL to a .collision.glb file for BVH-based collision detection. */
   collisionUrl?: string;
   /** Show collision mesh as green wireframe for debugging. Default: false. */
@@ -30,7 +30,7 @@ export class SplatViewer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
-  readonly sceneType: ThreeDgsSceneType;
+  readonly sceneType: SplatSceneType;
   readonly orbitControls?: OrbitControls;
   readonly sparkControls?: SparkControls;
 

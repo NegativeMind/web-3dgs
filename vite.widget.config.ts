@@ -5,7 +5,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: "src/index.ts",
-      name: "ThreeDgsWidget",
+      name: "SplatViewerWidget",
       fileName: () => "3dgs-viewer.js",
       formats: ["iife"],
     },
