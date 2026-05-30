@@ -10,8 +10,7 @@
     "build:widget": "vite build --config vite.widget.config.ts",
     "build:widget:watch": "vite build --watch --config vite.widget.config.ts",
     "build:all": "npm run build:widget && npm run build",
-    "preview": "vite preview",
-    "convert": "node --experimental-strip-types scripts/convert.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@sparkjsdev/spark": "^2.0.0",
@@ -19,7 +18,6 @@
     "three-mesh-bvh": "^0.9.10"
   },
   "devDependencies": {
-    "@playcanvas/splat-transform": "^2.1.1",
     "@types/node": "^25.9.1",
     "@types/three": "^0.184.1",
     "concurrently": "^9.2.1",
