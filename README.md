@@ -1,4 +1,4 @@
-# [Web 3D Gaussian Splatting Viewer Widget (Beta)](https://negativemind.github.io/web-3dgs/)
+# [Web 3D Gaussian Splatting Viewer Widget (Beta)](https://negativemind.com/web-3dgs/)
 
 [![Version](https://img.shields.io/badge/version-0.0.0--beta-blue)](https://github.com/NegativeMind/web-3dgs/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
@@ -14,13 +14,13 @@
 OrbitControls によるオブジェクト閲覧モードと、FPS スタイルで空間を歩き回るイマーシブモードの 2 種類に対応しています。
 WebXR にも対応しており、Meta Quest などの VR/MR デバイスで没入体験が可能です。
 
-[埋め込みコード作成ツール](https://negativemind.github.io/web-3dgs/)を用意しています。
+[埋め込みコード作成ツール](https://negativemind.com/web-3dgs/)を用意しています。
 
 ## 使い方
 
 ### 1. 埋め込みコードを生成する
 
-[ジェネレーターページ](https://negativemind.github.io/web-3dgs/)で 3DGS ファイルの URL を入力すると、埋め込みコードを自動生成できます。
+[ジェネレーターページ](https://negativemind.com/web-3dgs/)で 3DGS ファイルの URL を入力すると、埋め込みコードを自動生成できます。
 
 ### 2. コード埋め込み
 
