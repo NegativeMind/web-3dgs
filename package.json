@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n widget,vite \"npm run build:widget:watch\" \"vite\"",
+    "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "build:widget": "vite build --config vite.widget.config.ts",

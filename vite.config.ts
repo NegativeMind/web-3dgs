@@ -9,6 +9,7 @@ const CDN_WIDGET_URL =
 const serveLocalWidgetPlugin: Plugin = {
   name: "serve-local-widget",
   configureServer(server) {
+    // test-build.html 用: npm run build:widget で生成済みの dist/3dgs-viewer.js を配信
     server.middlewares.use("/dist/3dgs-viewer.js", (_req, res, next) => {
       try {
         const content = readFileSync(widgetFilePath);
@@ -23,7 +24,11 @@ const serveLocalWidgetPlugin: Plugin = {
     order: "pre",
     handler(html, ctx) {
       if (ctx.server) {
-        return html.replace(CDN_WIDGET_URL, "/dist/3dgs-viewer.js");
+        // dev サーバーではウィジェットソースを直接ロード（ビルド不要・HMR 有効）
+        return html.replace(
+          `<script src="${CDN_WIDGET_URL}"></script>`,
+          `<script type="module" src="/src/widget/index.ts"></script>`
+        );
       }
       return html;
     },
@@ -31,14 +36,16 @@ const serveLocalWidgetPlugin: Plugin = {
 };
 
 export default defineConfig({
-  root: "src",
   base: "./",
-  publicDir: "../public",
+  publicDir: "public",
   plugins: [serveLocalWidgetPlugin],
   build: {
-    outDir: "../dist",
+    outDir: "dist",
     emptyOutDir: true,
     chunkSizeWarningLimit: 6000,
+    rollupOptions: {
+      input: "embed-generator/index.html",
+    },
   },
   server: {
     port: 5173,

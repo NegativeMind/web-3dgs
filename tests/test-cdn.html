@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DGS Viewer - CDN配信テスト (beta v0.0.0)</title>
+
+    <!-- 3DGS Viewer Widget (jsDelivr CDN) -->
+    <script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@v0.0.0-beta/dist/3dgs-viewer.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+
+        .test-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .test-info h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.8rem;
+            color: #333;
+        }
+
+        .test-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .test-info code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .url-warning {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-top: 10px;
+            color: #721c24;
+            font-size: 0.9em;
+        }
+
+        .demo-area {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .embed-section {
+            border: 2px dashed #007cba;
+            padding: 15px;
+            margin: 15px 0;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        .section-title {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: #007cba;
+        }
+
+        .note {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .embed-code {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 10px 0 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+            white-space: pre;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-info">
+        <h1>🧪 CDN配信テスト</h1>
+        <p>このページは、jsDelivr から配信されるウィジェットの動作確認用です。</p>
+        <p>使用バージョン: <code>beta v0.0.0</code>（タグ: <code>@v0.0.0-beta</code>）</p>
+        <p>CDN URL: <code>https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@v0.0.0-beta/dist/3dgs-viewer.js</code></p>
+        <div class="url-warning">
+            ⚠️ タグ <code>v0.0.0-beta</code> を GitHub で作成してからでないと CDN から配信されません。
+        </div>
+    </div>
+
+    <!-- Object モードテスト -->
+    <div class="demo-area">
+        <h2 class="section-title">Object モード（OrbitControls）</h2>
+
+        <div class="note">
+            <strong>確認項目：</strong>
+            <ul style="margin: 5px 0; padding-left: 20px;">
+                <li><code>&lt;threedgs-viewer&gt;</code> Custom Element が登録・描画されるか</li>
+                <li>Shadow DOM によるスタイル分離が機能しているか</li>
+                <li>マウスドラッグで回転、ホイールでズームできるか</li>
+                <li>ロード中インジケーターが表示されるか</li>
+                <li>ResizeObserver によるキャンバスリサイズが機能するか</li>
+            </ul>
+        </div>
+
+        <div class="note" style="text-align: left; border-left: 3px solid #17a2b8;">
+            <strong>📋 埋め込みコード例：</strong>
+            <div class="embed-code">&lt;threedgs-viewer
+  src="https://negativemind.com/3dgs/gmk.sog"
+  scene-type="object"
+  width="800px"
+  height="480px"&gt;
+&lt;/threedgs-viewer&gt;
+&lt;script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@v0.0.0-beta/dist/3dgs-viewer.js"&gt;&lt;/script&gt;</div>
+        </div>
+
+        <div class="embed-section">
+            <threedgs-viewer
+                src="https://negativemind.com/3dgs/gmk.sog"
+                scene-type="object"
+                width="800px"
+                height="480px">
+            </threedgs-viewer>
+        </div>
+
+        <div class="note">
+            <strong>💡 ヒント：</strong>
+            F12 → Console でエラーや初期化ログを確認できます。CDN からのファイル取得は Network タブで確認できます。
+        </div>
+    </div>
+
+    <!-- Immersive モードテスト -->
+    <div class="demo-area">
+        <h2 class="section-title">Immersive モード（FPS 移動）</h2>
+
+        <div class="note">
+            <strong>確認項目：</strong>
+            <ul style="margin: 5px 0; padding-left: 20px;">
+                <li>クリックでポインターロックが有効になるか</li>
+                <li>WASD / 矢印キーで移動できるか</li>
+                <li>マウス移動で視点が変わるか</li>
+                <li>WebXR 対応デバイスで VR ボタンが表示されるか</li>
+            </ul>
+        </div>
+
+        <div class="embed-section">
+            <threedgs-viewer
+                src="https://negativemind.com/3dgs/gmk.sog"
+                scene-type="immersive"
+                width="800px"
+                height="480px">
+            </threedgs-viewer>
+        </div>
+    </div>
+
+    <!-- サイズ変動テスト -->
+    <div class="demo-area">
+        <h2 class="section-title">サイズ変動テスト</h2>
+
+        <div class="note">
+            <strong>確認項目：</strong>
+            <ul style="margin: 5px 0; padding-left: 20px;">
+                <li>異なるサイズで正しく描画されるか</li>
+                <li>複数インスタンスが独立して動作するか</li>
+            </ul>
+        </div>
+
+        <div class="embed-section" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start;">
+            <div>
+                <p style="font-size: 0.85em; color: #666; margin: 0 0 6px 0;">400 × 300</p>
+                <threedgs-viewer
+                    src="https://negativemind.com/3dgs/gmk.sog"
+                    scene-type="object"
+                    width="400px"
+                    height="300px">
+                </threedgs-viewer>
+            </div>
+            <div>
+                <p style="font-size: 0.85em; color: #666; margin: 0 0 6px 0;">280 × 200</p>
+                <threedgs-viewer
+                    src="https://negativemind.com/3dgs/gmk.sog"
+                    scene-type="object"
+                    width="280px"
+                    height="200px">
+                </threedgs-viewer>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

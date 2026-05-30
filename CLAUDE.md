@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev          # ウィジェットビルド後に開発サーバー起動 (http://localhost:5173)
+npm run dev          # 開発サーバー起動 (http://localhost:5173)。ウィジェットソースは Vite が直接変換（ビルド不要）
 npm run build:widget # ウィジェット単体ビルド → dist/3dgs-viewer.js
 npm run build        # ジェネレーターページビルド → dist/
 npm run build:all    # ウィジェット + ページを両方ビルド
@@ -18,19 +18,25 @@ npm run typecheck    # TypeScript 型チェック単体実行
 ### ディレクトリ構成
 
 ```
-src/
-├── index.html          ← 埋め込みコードジェネレーターページ（Vite root）
-├── main.ts             ← ジェネレーターページの UI ロジック
-├── style.scss          ← ジェネレーターページのスタイル
+index.html              ← 開発環境ナビページ（dev サーバートップ、プロダクションビルド対象外）
+embed-generator/        ← 埋め込みコードジェネレーター（GitHub Pages で公開）
+├── index.html
+├── main.ts
+└── style.scss
+tests/                  ← ローカル動作確認用テストページ
+├── test-local.html     ← ウィジェットソース直読み（HMR 有効、要 npm run dev）
+├── test-build.html     ← ビルド済み dist/3dgs-viewer.js を確認（要 npm run build:widget）
+└── test-cdn.html       ← CDN 配信版を確認（タグ作成後）
+src/                    ← ウィジェットソースのみ
 ├── vite-env.d.ts       ← `?inline` インポート用型宣言
 └── widget/
     ├── index.ts        ← Custom Element 定義（<threedgs-viewer>）
-    ├── 3dgs-viewer.ts  ← ThreeDgsViewer クラス
+    ├── splat-viewer.ts ← SplatViewer クラス
     ├── xrObjectControls.ts ← XR コントローラー操作
     └── style.scss      ← Shadow DOM 内スタイル
 
-public/3dgs/            ← 3DGS アセット（*.sog / *.ply / *.splat）
-dist/                   ← ジェネレーターページ + ウィジェット（.gitignore、dist/3dgs-viewer.js のみ CI がコミット）
+public/                 ← 静的アセット
+dist/                   ← ビルド成果物（.gitignore、dist/3dgs-viewer.js のみ CI がコミット）
 ```
 
 ### ウィジェット（Custom Element）
@@ -78,7 +84,8 @@ COLMAP SfM ベースの 3DGS データは Y 軸下向きのため、ロード後
 
 ### Vite 設定の注意点
 
-- `vite.config.ts`: `root: "src"` のため `publicDir` は `"../public"` と明示指定が必要
+- `vite.config.ts`: root はプロジェクトルート。ビルドエントリは `embed-generator/index.html` を明示指定
+- dev サーバーは `embed-generator/index.html` で CDN URL を `<script type="module" src="/src/widget/index.ts">` に差し替えてウィジェットをビルドなしで提供
 - `@sparkjsdev/spark` は `optimizeDeps.exclude` に指定（WASM バンドルのため）
 - `src/vite-env.d.ts` に `declare module "*.scss?inline"` が必要（Shadow DOM へのスタイル注入で使用）
 
