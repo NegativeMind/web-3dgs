@@ -10,6 +10,7 @@ export default defineConfig({
       formats: ["iife"],
     },
     outDir: "dist",
+    emptyOutDir: false,
     chunkSizeWarningLimit: 10000,
     rollupOptions: {
       output: {
