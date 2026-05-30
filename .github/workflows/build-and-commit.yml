@@ -48,3 +48,7 @@ jobs:
 
           git commit -m "chore: Update build artifacts [skip ci]"
           git push
+
+      - name: Purge jsDelivr cache
+        run: |
+          curl -sf "https://purge.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js" || true
