@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev          # ウィジェットビルド後に開発サーバー起動 (http://localhost:5173)
-npm run build:widget # ウィジェット単体ビルド → cdn/widget.js
+npm run build:widget # ウィジェット単体ビルド → dist/3dgs-viewer.js
 npm run build        # ジェネレーターページビルド → dist/
 npm run build:all    # ウィジェット + ページを両方ビルド
 npm run preview      # ビルド済み dist/ をローカルでプレビュー
@@ -30,8 +30,7 @@ src/
     └── style.scss      ← Shadow DOM 内スタイル
 
 public/3dgs/            ← 3DGS アセット（*.sog / *.ply / *.splat）
-cdn/                    ← ビルド済みウィジェット（.gitignore、CI がコミット）
-dist/                   ← ジェネレーターページビルド成果物（.gitignore）
+dist/                   ← ジェネレーターページ + ウィジェット（.gitignore、dist/3dgs-viewer.js のみ CI がコミット）
 ```
 
 ### ウィジェット（Custom Element）
@@ -40,7 +39,7 @@ dist/                   ← ジェネレーターページビルド成果物（.
 
 ```html
 <threedgs-viewer src="https://example.com/model.sog" scene-type="object" width="100%" height="480px"></threedgs-viewer>
-<script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widget.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js"></script>
 ```
 
 属性：
@@ -52,7 +51,7 @@ dist/                   ← ジェネレーターページビルド成果物（.
 ### ウィジェットビルド設定（vite.widget.config.ts）
 
 - IIFE 形式、`inlineDynamicImports: true`（単一ファイル出力）
-- 出力先: `cdn/widget.js`（`emptyOutDir: true`）
+- 出力先: `dist/3dgs-viewer.js`（`emptyOutDir` なし。ジェネレーターページ用 `dist/` と共存）
 - `publicDir: false`（公開アセットをバンドルに含めない）
 
 ### レンダリングの仕組み
@@ -90,14 +89,14 @@ COLMAP SfM ベースの 3DGS データは Y 軸下向きのため、ロード後
 
 ## CDN 配信と CI
 
-`cdn/widget.js` はローカルでは `.gitignore` で無視される。GitHub Actions が以下を自動実行する：
+`dist/3dgs-viewer.js` はローカルでは `.gitignore` で無視される。GitHub Actions が以下を自動実行する：
 
-- **`build-and-commit.yml`** — `main` への push 時に `src/` 変更を検知してウィジェットをビルドし、`cdn/widget.js` を `git add -f` でコミット
+- **`build-and-commit.yml`** — `main` への push 時に `src/` 変更を検知してウィジェットをビルドし、`dist/3dgs-viewer.js` を `git add -f` でコミット
 - **`release.yml`** — `v*.*.*` タグ付与時にビルド・コミットし、GitHub Release を作成
 
 jsDelivr CDN URL:
 ```
-https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widget.js
+https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js
 ```
 
 ## デプロイ

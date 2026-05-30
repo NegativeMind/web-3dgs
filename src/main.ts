@@ -1,4 +1,4 @@
-const CDN_URL = "https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widget.js";
+const CDN_URL = "https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js";
 
 const form = document.getElementById("generatorForm") as HTMLFormElement;
 const urlInput = document.getElementById("splatUrl") as HTMLInputElement;

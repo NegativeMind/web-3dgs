@@ -19,20 +19,20 @@ GitHub Pages の[ジェネレーターページ](https://negativemind.github.io/
   width="100%"
   height="480px">
 </threedgs-viewer>
-<script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widget.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js"></script>
 ```
 
 ### 属性
 
 | 属性 | 値 | 説明 |
 |---|---|---|
-| `src` | URL | 3DGS ファイルの URL（`.sog` / `.ply` / `.splat`） |
+| `src` | URL | 3DGS ファイルの URL（`.ply` / `.splat` / `.sog`） |
 | `scene-type` | `object` (default) | OrbitControls でモデルを回転・ズーム |
 | `scene-type` | `immersive` | FPS スタイルで空間内を移動 |
 
 ## 機能
 
-- `.sog` / `.ply` / `.splat` 形式の 3DGS ファイルをロード
+- `.ply` / `.splat` / `.sog` 形式の 3DGS ファイルをロード
 - **object モード**: OrbitControls でモデルを周回・ズーム
 - **immersive モード**: Spark の FPS/ポインターコントロールで空間移動
 - WebXR 対応（AR/MR パススルー優先、VR フォールバック）
@@ -48,7 +48,7 @@ GitHub Pages の[ジェネレーターページ](https://negativemind.github.io/
 npm install
 npm run dev          # ウィジェットビルド後に開発サーバー起動 (http://localhost:5173)
 npm run typecheck    # TypeScript 型チェック
-npm run build:widget # ウィジェット単体ビルド → cdn/widget.js
+npm run build:widget # ウィジェット単体ビルド → dist/3dgs-viewer.js
 npm run build        # ジェネレーターページビルド → dist/
 npm run build:all    # 両方ビルド
 ```
@@ -67,21 +67,21 @@ src/
     └── style.scss      ← Shadow DOM 内スタイル
 
 public/3dgs/            ← 開発用 3DGS アセット
-cdn/                    ← ビルド済みウィジェット（CI が管理、jsDelivr 配信）
+dist/                   ← ジェネレーターページ + ウィジェット（dist/3dgs-viewer.js は CI が管理）
 ```
 
 ## CDN 配信
 
-`main` ブランチへのプッシュ時に GitHub Actions がウィジェットをビルドし、`cdn/widget.js` を自動コミットします。jsDelivr がそのファイルを配信します。
+`main` ブランチへのプッシュ時に GitHub Actions がウィジェットをビルドし、`dist/3dgs-viewer.js` を自動コミットします。jsDelivr がそのファイルを配信します。
 
 ```
-https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/cdn/widget.js
+https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@main/dist/3dgs-viewer.js
 ```
 
 特定バージョンを固定したい場合はタグを指定します：
 
 ```
-https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@v1.0.0/cdn/widget.js
+https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@v1.0.0/dist/3dgs-viewer.js
 ```
 
 ## デプロイ

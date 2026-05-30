@@ -6,11 +6,10 @@ export default defineConfig({
     lib: {
       entry: "src/widget/index.ts",
       name: "ThreeDgsWidget",
-      fileName: () => "widget.js",
+      fileName: () => "3dgs-viewer.js",
       formats: ["iife"],
     },
-    outDir: "cdn",
-    emptyOutDir: true,
+    outDir: "dist",
     chunkSizeWarningLimit: 10000,
     rollupOptions: {
       output: {

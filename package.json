@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:widget": "vite build --config vite.widget.config.ts",
     "build:widget:watch": "vite build --watch --config vite.widget.config.ts",
-    "build:all": "npm run build:widget && npm run build",
+    "build:all": "npm run build && npm run build:widget",
     "preview": "vite preview"
   },
   "dependencies": {
