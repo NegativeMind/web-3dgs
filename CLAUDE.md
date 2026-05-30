@@ -49,7 +49,7 @@ dist/                   ← ビルド成果物（.gitignore、dist/3dgs-viewer.j
 ```
 
 属性：
-- `src` — 3DGS ファイルの URL（`.sog` / `.ply` / `.splat`）
+- `src` — 3DGS ファイルの URL（`.ply` / `.splat` / `.spz` / `.ksplat` / `.rad` / `.sog`）
 - `scene-type` — `"object"`（OrbitControls）または `"immersive"`（FPS 移動）
 
 `connectedCallback` でレンダラーを初期化し、`disconnectedCallback` で `dispose()` する。コンテナサイズ変化は `ResizeObserver` で検知する（`window.resize` ではない）。
