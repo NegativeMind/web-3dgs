@@ -89,7 +89,7 @@ npm run build:all    # 両方ビルド
 index.html              ← 開発環境ナビページ（npm run dev で起動）
 embed-generator/        ← 埋め込みコードジェネレーター（GitHub Pages で公開）
 tests/                  ← ローカル動作確認用テストページ
-src/widget/             ← ウィジェットソース（<threedgs-viewer> Custom Element）
+src/                    ← ウィジェットソース（<threedgs-viewer> Custom Element）
 dist/                   ← ビルド成果物（dist/3dgs-viewer.js は CI が管理）
 ```
 

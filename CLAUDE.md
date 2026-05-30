@@ -27,13 +27,12 @@ tests/                  ← ローカル動作確認用テストページ
 ├── test-local.html     ← ウィジェットソース直読み（HMR 有効、要 npm run dev）
 ├── test-build.html     ← ビルド済み dist/3dgs-viewer.js を確認（要 npm run build:widget）
 └── test-cdn.html       ← CDN 配信版を確認（タグ作成後）
-src/                    ← ウィジェットソースのみ
-├── vite-env.d.ts       ← `?inline` インポート用型宣言
-└── widget/
-    ├── index.ts        ← Custom Element 定義（<threedgs-viewer>）
-    ├── splat-viewer.ts ← SplatViewer クラス
-    ├── xrObjectControls.ts ← XR コントローラー操作
-    └── style.scss      ← Shadow DOM 内スタイル
+src/                    ← ウィジェットソース
+├── index.ts            ← Custom Element 定義（<threedgs-viewer>）
+├── splat-viewer.ts     ← SplatViewer クラス
+├── xrObjectControls.ts ← XR コントローラー操作
+├── style.scss          ← Shadow DOM 内スタイル
+└── vite-env.d.ts       ← `?inline` インポート用型宣言
 
 public/                 ← 静的アセット
 dist/                   ← ビルド成果物（.gitignore、dist/3dgs-viewer.js のみ CI がコミット）

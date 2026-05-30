@@ -4,7 +4,7 @@ export default defineConfig({
   publicDir: false,
   build: {
     lib: {
-      entry: "src/widget/index.ts",
+      entry: "src/index.ts",
       name: "ThreeDgsWidget",
       fileName: () => "3dgs-viewer.js",
       formats: ["iife"],

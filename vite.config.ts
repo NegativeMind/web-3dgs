@@ -27,7 +27,7 @@ const serveLocalWidgetPlugin: Plugin = {
         // dev サーバーではウィジェットソースを直接ロード（ビルド不要・HMR 有効）
         return html.replace(
           `<script src="${CDN_WIDGET_URL}"></script>`,
-          `<script type="module" src="/src/widget/index.ts"></script>`
+          `<script type="module" src="/src/index.ts"></script>`
         );
       }
       return html;
@@ -35,17 +35,17 @@ const serveLocalWidgetPlugin: Plugin = {
   },
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // dev: プロジェクトルートをサーブ（ナビページ + 全ページにアクセス可）
+  // build: embed-generator/ をルートにして dist/index.html へ出力
+  root: command === "serve" ? "." : "embed-generator",
   base: "./",
-  publicDir: "public",
+  publicDir: command === "serve" ? "public" : "../public",
   plugins: [serveLocalWidgetPlugin],
   build: {
-    outDir: "dist",
+    outDir: "../dist",
     emptyOutDir: true,
     chunkSizeWarningLimit: 6000,
-    rollupOptions: {
-      input: "embed-generator/index.html",
-    },
   },
   server: {
     port: 5173,
@@ -54,4 +54,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@sparkjsdev/spark"],
   },
-});
+}));
