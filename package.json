@@ -10,7 +10,8 @@
     "build:widget": "vite build --config vite.widget.config.ts",
     "build:widget:watch": "vite build --watch --config vite.widget.config.ts",
     "build:all": "npm run build && npm run build:widget",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@sparkjsdev/spark": "^2.0.0",

@@ -1,0 +1,9 @@
+#!/bin/sh
+# CI 環境（GitHub Actions 等）ではスキップ
+[ "$CI" = "true" ] && exit 0
+
+if git diff --cached --name-only | grep -q "^dist/"; then
+  echo "Error: dist/ へのコミットは禁止されています。"
+  echo "  git reset HEAD dist/  でステージを解除してください。"
+  exit 1
+fi
