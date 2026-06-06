@@ -1,6 +1,5 @@
 # Auto line ending normalization
 * text=auto
-
 # 3D assets (binary → Git LFS)
 *.ply               filter=lfs diff=lfs merge=lfs -text
 *.sog               filter=lfs diff=lfs merge=lfs -text
@@ -10,3 +9,6 @@
 *.bin               filter=lfs diff=lfs merge=lfs -text
 *.fbx               filter=lfs diff=lfs merge=lfs -text
 *.FBX               filter=lfs diff=lfs merge=lfs -text
+
+# image
+*.gif               filter=lfs diff=lfs merge=lfs -text
