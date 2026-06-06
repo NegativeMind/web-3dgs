@@ -13,7 +13,7 @@
 
         <header class="header">
             <h1>3D Gaussian Splatting Viewer</h1>
-            <p>任意のWebサイトに3D Gaussian Splattingコンテンツを埋め込み可能なウィジェット</p>
+            <p>任意のWebサイトに3D Gaussian Splattingコンテンツを埋め込み可能なWebウィジェット</p>
             <a href="https://github.com/NegativeMind/web-3dgs" target="_blank" class="github-link">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                     <path
@@ -26,8 +26,9 @@
         <div class="generator">
             <div class="help">
                 <span class="help-title">使い方</span>
-                <span>3DGS ファイル（<code>.ply</code> / <code>.splat</code> / <code>.spz</code> / <code>.ksplat</code> / <code>.rad</code> / <code>.sog</code>）の URL
-                    を入力して「埋め込みコードを作成」を押してください。生成されたコードを任意の Web ページに貼り付けるだけでウィジェットを埋め込めます。</span>
+                <span>3DGSファイル（<code>.ply</code> / <code>.splat</code> / <code>.spz</code> / <code>.ksplat</code> /
+                    <code>.rad</code> / <code>.sog</code>）の URL
+                    を入力して「埋め込みコードを作成」を押してください。生成されたコードを任意のWebページに貼り付けるだけでウィジェットを埋め込めます。</span>
             </div>
 
             <form id="generatorForm">
@@ -52,11 +53,11 @@
                     </div>
                     <div class="form-group secondary">
                         <label for="viewerWidth">幅 <span class="optional">（任意）</span></label>
-                        <input type="text" id="viewerWidth" placeholder="800px">
+                        <input type="text" id="viewerWidth" placeholder="100%">
                     </div>
                     <div class="form-group secondary">
                         <label for="viewerHeight">高さ <span class="optional">（任意）</span></label>
-                        <input type="text" id="viewerHeight" placeholder="450px">
+                        <input type="text" id="viewerHeight" placeholder="100%">
                     </div>
                 </div>
 
