@@ -141,6 +141,7 @@ export class SplatViewer {
     const tasks: Promise<void>[] = [this.loadSplat(this.options.splatUrl)];
     if (this.options.collisionUrl) tasks.push(this.loadCollision(this.options.collisionUrl));
     await Promise.all(tasks);
+    if (this.disposed) return;
     this.renderer.setAnimationLoop(this.render);
   }
 
@@ -183,6 +184,7 @@ export class SplatViewer {
         timeoutId = setTimeout(() => reject(new Error(`Load timeout: ${url}`)), 60000);
       });
       await Promise.race([splatMesh.initialized, timeout]);
+      if (this.disposed) return;
 
       if (this.sceneType === "object") this.fitCameraToSplat(splatMesh, mesh3d);
     } catch (err) {
@@ -216,14 +218,7 @@ export class SplatViewer {
   }
 
   private applyCameraCollision(): void {
-    if (!this.collisionMesh) {
-      const now = performance.now();
-      if (now - this._lastDebugTime > 3000) {
-        console.warn("[3DGS collision] collisionMesh is null — no collision active");
-        this._lastDebugTime = now;
-      }
-      return;
-    }
+    if (!this.collisionMesh) return;
 
     // Capsule sweep: segment from camera position before controls ran (prevCamWorld)
     // to position after controls ran (camWorldAfter).  This catches tunneling when
@@ -324,10 +319,25 @@ export class SplatViewer {
     this.splatObject = undefined;
   }
 
+  private disposeCollisionGroup(group: THREE.Group): void {
+    group.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      node.geometry.boundsTree = undefined;
+      node.geometry.dispose();
+      if (Array.isArray(node.material)) node.material.forEach((m) => m.dispose());
+      else node.material.dispose();
+    });
+  }
+
   private async loadCollision(url: string): Promise<void> {
     try {
       const result = await new GLTFLoader().loadAsync(url);
       const group = result.scene;
+      if (this.disposed) {
+        this.disposeCollisionGroup(group);
+        return;
+      }
+
       group.rotation.y = Math.PI;
       let meshCount = 0;
       group.traverse((node) => {
@@ -362,13 +372,7 @@ export class SplatViewer {
   private clearCollision(): void {
     if (!this.collisionMesh) return;
     this.scene.remove(this.collisionMesh);
-    this.collisionMesh.traverse((node) => {
-      if (!(node instanceof THREE.Mesh)) return;
-      node.geometry.boundsTree = undefined;
-      node.geometry.dispose();
-      if (Array.isArray(node.material)) node.material.forEach((m) => m.dispose());
-      else node.material.dispose();
-    });
+    this.disposeCollisionGroup(this.collisionMesh);
     this.collisionMesh = undefined;
   }
 
@@ -398,7 +402,7 @@ export class SplatViewer {
       this.sparkControls?.update(this.localFrame, this.camera);
     }
 
-    this.applyCameraCollision();
+    if (this.collisionMesh) this.applyCameraCollision();
 
     this.renderer.render(this.scene, this.camera);
   };

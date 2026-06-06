@@ -20,8 +20,10 @@ class SplatViewerElement extends HTMLElement {
   }
 
   connectedCallback(): void {
+    if (this.viewer) return;
+
     this.applySize();
-    const shadow = this.attachShadow({ mode: "open" });
+    const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
     style.textContent = STYLES;
@@ -42,7 +44,7 @@ class SplatViewerElement extends HTMLElement {
     vrButton.className = "vr-button hidden";
 
     ui.append(loading, vrButton);
-    shadow.append(style, canvas, ui);
+    shadow.replaceChildren(style, canvas, ui);
 
     const src = this.getAttribute("src") ?? "";
     const rawSceneType = this.getAttribute("scene-type") ?? "object";

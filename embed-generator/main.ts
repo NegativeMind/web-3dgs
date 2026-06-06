@@ -13,10 +13,28 @@ const codeSection = document.getElementById("codeSection") as HTMLElement;
 const embedCode = document.getElementById("embedCode") as HTMLElement;
 const copyBtn = document.getElementById("copyBtn") as HTMLButtonElement;
 
+function escapeHtmlAttribute(value: string): string {
+  return value.replace(/[&"<>]/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "\"":
+        return "&quot;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      default:
+        return char;
+    }
+  });
+}
+
 form.addEventListener("submit", (e: Event) => {
   e.preventDefault();
 
   const url = urlInput.value.trim();
+  const collisionUrl = collisionUrlInput.value.trim();
   urlError.style.display = "none";
 
   if (!url) {
@@ -25,32 +43,46 @@ form.addEventListener("submit", (e: Event) => {
     return;
   }
 
+  let splatUrl: string;
+  let normalizedCollisionUrl = "";
+
   try {
-    new URL(url);
+    splatUrl = new URL(url).href;
   } catch {
     urlError.textContent = "有効な URL を入力してください。";
     urlError.style.display = "block";
     return;
   }
 
-  const sceneType = sceneTypeSelect.value;
+  if (collisionUrl) {
+    try {
+      normalizedCollisionUrl = new URL(collisionUrl).href;
+    } catch {
+      urlError.textContent = "有効な衝突メッシュ URL を入力してください。";
+      urlError.style.display = "block";
+      return;
+    }
+  }
+
+  const sceneType = sceneTypeSelect.value === "immersive" ? "immersive" : "object";
   const width = widthInput.value.trim();
   const height = heightInput.value.trim();
-  const collisionUrl = collisionUrlInput.value.trim();
 
   previewArea.innerHTML = "";
   const viewer = document.createElement("splat-viewer");
-  viewer.setAttribute("src", url);
+  viewer.setAttribute("src", splatUrl);
   viewer.setAttribute("scene-type", sceneType);
   if (width) viewer.setAttribute("width", width);
   if (height) viewer.setAttribute("height", height);
-  if (collisionUrl) viewer.setAttribute("collision-src", collisionUrl);
+  if (normalizedCollisionUrl) viewer.setAttribute("collision-src", normalizedCollisionUrl);
   previewArea.appendChild(viewer);
 
-  const collisionAttr = collisionUrl ? ` collision-src="${collisionUrl}"` : "";
-  const widthAttr = width ? ` width="${width}"` : "";
-  const heightAttr = height ? ` height="${height}"` : "";
-  const tag = `<splat-viewer src="${url}"${collisionAttr} scene-type="${sceneType}"${widthAttr}${heightAttr}></splat-viewer>`;
+  const collisionAttr = normalizedCollisionUrl
+    ? ` collision-src="${escapeHtmlAttribute(normalizedCollisionUrl)}"`
+    : "";
+  const widthAttr = width ? ` width="${escapeHtmlAttribute(width)}"` : "";
+  const heightAttr = height ? ` height="${escapeHtmlAttribute(height)}"` : "";
+  const tag = `<splat-viewer src="${escapeHtmlAttribute(splatUrl)}"${collisionAttr} scene-type="${sceneType}"${widthAttr}${heightAttr}></splat-viewer>`;
   const script = `<script src="${CDN_URL}"><\/script>`;
   embedCode.textContent = `${tag}\n${script}`;
 
