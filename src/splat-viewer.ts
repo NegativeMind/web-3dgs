@@ -161,6 +161,7 @@ export class SplatViewer {
   }
 
   private updateXrButton(supported: boolean, presenting: boolean): void {
+    this.options.vrButton.classList.toggle("hidden", !supported);
     this.options.vrButton.disabled = !supported;
     this.options.vrButton.textContent = presenting ? "EXIT XR" : "ENTER XR";
   }
