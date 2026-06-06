@@ -10,10 +10,9 @@
 
 > ⚠️ まだバージョン1未満のベータ版です。仕様が予告なく変更される可能性があります。
 
-`.ply` / `.splat` / `.spz` / `.ksplat` / `.rad` / `.sog` 形式の 3D Gaussian Splatting ファイルを任意の Web ページに埋め込めるウィジェットスクリプトです。
-OrbitControls によるオブジェクト閲覧モードと、FPS スタイルで空間を歩き回るイマーシブモードの 2 種類に対応しています。
-WebXR にも対応しており、Meta Quest などの VR/MR デバイスで没入体験が可能です。
-
+`.ply` / `.splat` / `.spz` / `.ksplat` / `.rad` / `.sog` 形式の3D Gaussian Splattingファイルを任意のWebページに埋め込めるウィジェットスクリプトです。
+OrbitControls によるオブジェクト閲覧モードと、FPS スタイルで空間を歩き回るイマーシブモードの2種類に対応しています。
+WebXRにも対応しており、Meta Quest などのVR/MRデバイスで没入体験できます。
 
 <h1 align="center">
 <a href="https://negativemind.com/web-3dgs/" target="_blank">
