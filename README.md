@@ -14,6 +14,13 @@
 OrbitControls によるオブジェクト閲覧モードと、FPS スタイルで空間を歩き回るイマーシブモードの 2 種類に対応しています。
 WebXR にも対応しており、Meta Quest などの VR/MR デバイスで没入体験が可能です。
 
+
+<h1 align="center">
+<a href="https://negativemind.com/web-3dgs/" target="_blank">
+  <img src="assets/demo.gif" alt="Web 3D Gaussian Splatting Viewer Widget Demo" width="760">
+</a>
+</h1>
+
 [埋め込みコード作成ツール](https://negativemind.com/web-3dgs/)を用意しています。
 
 ## 使い方
