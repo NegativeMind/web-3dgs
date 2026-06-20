@@ -9,6 +9,8 @@ import {
 } from "@sparkjsdev/spark";
 import { MeshBVH, type ExtendedTriangle } from "three-mesh-bvh";
 import { XrObjectControls } from "./xrObjectControls";
+import { UnrollEffect } from "./effects/unroll-effect";
+import { SpreadEffect } from "./effects/spread-effect";
 
 export type SplatSceneType = "object" | "immersive";
 
@@ -45,6 +47,8 @@ export class SplatViewer {
 
   private splatMesh?: SplatMesh;
   private splatObject?: THREE.Object3D;
+  private unrollEffect?: UnrollEffect;
+  private spreadEffect?: SpreadEffect;
   private lastFrameTime = performance.now();
   private disposed = false;
   private resizeObserver?: ResizeObserver;
@@ -187,7 +191,12 @@ export class SplatViewer {
       await Promise.race([splatMesh.initialized, timeout]);
       if (this.disposed) return;
 
-      if (this.sceneType === "object") this.fitCameraToSplat(splatMesh, mesh3d);
+      if (this.sceneType === "object") {
+        this.fitCameraToSplat(splatMesh, mesh3d);
+        this.unrollEffect = new UnrollEffect(splatMesh, 3, 1);
+      } else {
+        this.spreadEffect = new SpreadEffect(splatMesh, 3);
+      }
     } catch (err) {
       console.error("[3DGS] Failed to load splat:", err);
       this.clearSplat();
@@ -248,8 +257,8 @@ export class SplatViewer {
 
       // Transform sweep segment into this mesh's local space
       const segStart = this.prevCamWorld.clone().applyMatrix4(invMat);
-      const segEnd   = camWorldAfter.clone().applyMatrix4(invMat);
-      const segment  = new THREE.Line3(segStart, segEnd);
+      const segEnd = camWorldAfter.clone().applyMatrix4(invMat);
+      const segment = new THREE.Line3(segStart, segEnd);
 
       // AABB enclosing the whole capsule for fast BVH node rejection
       const capsuleBox = new THREE.Box3().makeEmpty();
@@ -313,6 +322,8 @@ export class SplatViewer {
   }
 
   private clearSplat(): void {
+    this.unrollEffect = undefined;
+    this.spreadEffect = undefined;
     if (this.splatObject) this.scene.remove(this.splatObject);
     this.xrObjectControls?.setObject(undefined);
     this.splatMesh?.dispose();
@@ -405,6 +416,8 @@ export class SplatViewer {
 
     if (this.collisionMesh) this.applyCameraCollision();
 
+    this.unrollEffect?.update(deltaTime);
+    this.spreadEffect?.update(deltaTime);
     this.renderer.render(this.scene, this.camera);
   };
 }

@@ -111,23 +111,48 @@
         </div>
     </div>
 
-    <!-- Object モードテスト -->
+    <!-- Object / Immersive 横並び比較 -->
     <div class="demo-area">
-        <h2 class="section-title">Object モード（OrbitControls）</h2>
-
         <div class="note">
             <strong>確認項目：</strong>
             <ul style="margin: 5px 0; padding-left: 20px;">
-                <li><code>&lt;splat-viewer&gt;</code> Custom Element が登録・描画されるか</li>
-                <li>Shadow DOM によるスタイル分離が機能しているか</li>
-                <li>マウスドラッグで回転、ホイールでズームできるか</li>
+                <li><code>&lt;splat-viewer&gt;</code> Custom Element が登録・描画されるか / クリックでポインターロックが有効になるか</li>
+                <li>マウスドラッグで回転・ズーム（Object）/ WASD 移動・マウス視点変更（Immersive）ができるか</li>
                 <li>ロード中インジケーターが表示されるか</li>
                 <li>ResizeObserver によるキャンバスリサイズが機能するか</li>
+                <li>F12 → Console でエラーや初期化ログを確認。CDN からのファイル取得は Network タブで確認</li>
             </ul>
         </div>
 
-        <div class="note" style="text-align: left; border-left: 3px solid #17a2b8;">
-            <strong>📋 埋め込みコード例：</strong>
+        <div style="display: flex; gap: 15px;">
+            <div style="flex: 1; min-width: 0;">
+                <h2 class="section-title">Object モード（OrbitControls）</h2>
+                <div class="embed-section">
+                    <splat-viewer
+                        src="https://negativemind.com/3dgs/gmk.sog"
+                        scene-type="object"
+                        width="100%">
+                    </splat-viewer>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <h2 class="section-title">Immersive モード（FPS 移動）</h2>
+                <div class="embed-section">
+                    <splat-viewer
+                        src="https://negativemind.com/3dgs/gmk.sog"
+                        scene-type="immersive"
+                        width="100%">
+                    </splat-viewer>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 埋め込みコード例 -->
+    <div class="demo-area">
+        <h2 class="section-title">埋め込みコード例</h2>
+        <div class="note" style="border-left: 3px solid #17a2b8;">
+            <strong>📋 Object モード：</strong>
             <div class="embed-code">&lt;splat-viewer
   src="https://negativemind.com/3dgs/gmk.sog"
   scene-type="object"
@@ -135,44 +160,6 @@
   height="480px"&gt;
 &lt;/splat-viewer&gt;
 &lt;script src="https://cdn.jsdelivr.net/gh/NegativeMind/web-3dgs@v0.0.0-beta/dist/3dgs-viewer.js"&gt;&lt;/script&gt;</div>
-        </div>
-
-        <div class="embed-section">
-            <splat-viewer
-                src="https://negativemind.com/3dgs/gmk.sog"
-                scene-type="object"
-                width="800px"
-                height="480px">
-            </splat-viewer>
-        </div>
-
-        <div class="note">
-            <strong>💡 ヒント：</strong>
-            F12 → Console でエラーや初期化ログを確認できます。CDN からのファイル取得は Network タブで確認できます。
-        </div>
-    </div>
-
-    <!-- Immersive モードテスト -->
-    <div class="demo-area">
-        <h2 class="section-title">Immersive モード（FPS 移動）</h2>
-
-        <div class="note">
-            <strong>確認項目：</strong>
-            <ul style="margin: 5px 0; padding-left: 20px;">
-                <li>クリックでポインターロックが有効になるか</li>
-                <li>WASD / 矢印キーで移動できるか</li>
-                <li>マウス移動で視点が変わるか</li>
-                <li>WebXR 対応デバイスで VR ボタンが表示されるか</li>
-            </ul>
-        </div>
-
-        <div class="embed-section">
-            <splat-viewer
-                src="https://negativemind.com/3dgs/gmk.sog"
-                scene-type="immersive"
-                width="800px"
-                height="480px">
-            </splat-viewer>
         </div>
     </div>
 
@@ -191,21 +178,25 @@
         <div class="embed-section" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start;">
             <div>
                 <p style="font-size: 0.85em; color: #666; margin: 0 0 6px 0;">400 × 300</p>
-                <splat-viewer
-                    src="https://negativemind.com/3dgs/gmk.sog"
-                    scene-type="object"
-                    width="400px"
-                    height="300px">
-                </splat-viewer>
+                <div style="border: 2px solid #007cba; display: inline-block;">
+                    <splat-viewer
+                        src="https://negativemind.com/3dgs/gmk.sog"
+                        scene-type="object"
+                        width="400px"
+                        height="300px">
+                    </splat-viewer>
+                </div>
             </div>
             <div>
                 <p style="font-size: 0.85em; color: #666; margin: 0 0 6px 0;">280 × 200</p>
-                <splat-viewer
-                    src="https://negativemind.com/3dgs/gmk.sog"
-                    scene-type="object"
-                    width="280px"
-                    height="200px">
-                </splat-viewer>
+                <div style="border: 2px solid #007cba; display: inline-block;">
+                    <splat-viewer
+                        src="https://negativemind.com/3dgs/gmk.sog"
+                        scene-type="object"
+                        width="280px"
+                        height="200px">
+                    </splat-viewer>
+                </div>
             </div>
         </div>
     </div>
